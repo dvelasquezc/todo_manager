@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -Command \"cd ''C:\\\\Users\\\\DVelasquez\\\\Dropbox\\\\apps\\\\todolistmanager''; npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias ''@/*'' --use-npm --no-turbopack\")",
+      "Bash(powershell -Command \"where.exe node; where.exe npm\")",
+      "Bash(cmd /c \"set PATH=C:\\\\Program Files\\\\nodejs;%PATH% && cd /d C:\\\\Users\\\\DVelasquez\\\\Dropbox\\\\apps\\\\todolistmanager && npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias @/* --use-npm --no-turbopack\")",
+      "Bash(cmd /c \"set PATH=C:\\\\Program Files\\\\nodejs;%PATH% && cd /d C:\\\\Users\\\\DVelasquez\\\\Dropbox\\\\apps\\\\todolistmanager && echo y | npx create-next-app@latest . --ts --tailwind --eslint --app --src-dir --import-alias @/* --use-npm 2>&1\")",
+      "Bash(cmd /c \"set PATH=C:\\\\Program Files\\\\nodejs;%PATH% && node --version && npm --version\")",
+      "Bash(\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" --version)",
+      "Bash(\"C:\\\\Program Files\\\\nodejs\\\\npm.cmd\" --version)",
+      "Bash(\"C:\\\\Program Files\\\\nodejs\\\\npm.cmd\" init -y)",
+      "Bash(\"C:\\\\Program Files\\\\nodejs\\\\npm.cmd\" install next@latest react@latest react-dom@latest typescript @types/react @types/node)",
+      "Bash(\"C:\\\\Program Files\\\\nodejs\\\\npm.cmd\" install tailwindcss @tailwindcss/postcss postcss autoprefixer)",
+      "Bash(\"C:\\\\Program Files\\\\nodejs\\\\npm.cmd\" install @supabase/supabase-js @supabase/ssr zod react-hook-form @hookform/resolvers date-fns lucide-react clsx tailwind-merge class-variance-authority)",
+      "Bash(\"C:\\\\Program Files\\\\nodejs\\\\npm.cmd\" install -D eslint eslint-config-next @next/eslint-plugin-next vitest @vitejs/plugin-react)",
+      "Bash(set \"PATH=C:\\\\Program Files\\\\nodejs;%PATH%\")",
+      "Bash(\"C:\\\\Program Files\\\\nodejs\\\\npm.cmd\" install -D eslint eslint-config-next vitest)",
+      "Bash(\"C:\\\\Program Files\\\\nodejs\\\\npm.cmd\" install -D eslint eslint-config-next vitest --ignore-scripts)",
+      "Bash(\"C:\\\\Program Files\\\\nodejs\\\\npm.cmd\" run typecheck)",
+      "Bash(\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" \"C:\\\\Users\\\\DVelasquez\\\\Dropbox\\\\apps\\\\todolistmanager\\\\node_modules\\\\.bin\\\\tsc\" --noEmit)",
+      "Bash(\"C:\\\\Users\\\\DVelasquez\\\\Dropbox\\\\apps\\\\todolistmanager\\\\node_modules\\\\.bin\\\\tsc.cmd\" --noEmit)",
+      "Bash(find:*)",
+      "Bash(npm install)",
+      "Bash(npm run dev:*)",
+      "Bash(timeout:*)",
+      "Bash(ping:*)",
+      "Bash(taskkill /F /PID 150540)",
+      "Bash(Remove-Item -Force \"C:\\\\Users\\\\DVelasquez\\\\Dropbox\\\\apps\\\\todolistmanager\\\\.next\\\\dev\\\\lock\")",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(powershell -Command \"Stop-Process -Id 150540 -Force -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force ''C:\\\\Users\\\\DVelasquez\\\\Dropbox\\\\apps\\\\todolistmanager\\\\.next'' -ErrorAction SilentlyContinue; Write-Host ''Done''\")"
+    ]
+  }
+}

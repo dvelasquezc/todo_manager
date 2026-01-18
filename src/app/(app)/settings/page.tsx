@@ -1,0 +1,154 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Settings, User } from 'lucide-react'
+
+export default function SettingsPage() {
+  const [email, setEmail] = useState('')
+  const [displayName, setDisplayName] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  useEffect(() => {
+    async function fetchProfile() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (user) {
+        setEmail(user.email || '')
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('display_name')
+          .eq('id', user.id)
+          .single()
+
+        if (profile) {
+          setDisplayName(profile.display_name || '')
+        }
+      }
+
+      setLoading(false)
+    }
+
+    fetchProfile()
+  }, [])
+
+  async function handleSave() {
+    setSaving(true)
+    setMessage(null)
+
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      setMessage({ type: 'error', text: 'Not authenticated' })
+      setSaving(false)
+      return
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ display_name: displayName.trim() || null })
+      .eq('id', user.id)
+
+    if (error) {
+      setMessage({ type: 'error', text: error.message })
+    } else {
+      setMessage({ type: 'success', text: 'Settings saved' })
+    }
+
+    setSaving(false)
+  }
+
+  if (loading) {
+    return (
+      <div className="max-w-xl mx-auto">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-muted rounded w-48" />
+          <div className="h-64 bg-muted rounded" />
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="max-w-xl mx-auto space-y-6">
+      <div className="flex items-center gap-3">
+        <Settings className="h-6 w-6 text-primary" />
+        <h1 className="text-2xl font-bold">Settings</h1>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Profile
+          </CardTitle>
+          <CardDescription>Manage your account settings</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {message && (
+            <div
+              className={`p-3 text-sm rounded-md ${
+                message.type === 'success'
+                  ? 'bg-green-500/10 text-green-600'
+                  : 'bg-destructive/10 text-destructive'
+              }`}
+            >
+              {message.text}
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <label htmlFor="email" className="text-sm font-medium">
+              Email
+            </label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              disabled
+              className="bg-muted"
+            />
+            <p className="text-xs text-muted-foreground">
+              Email cannot be changed
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="displayName" className="text-sm font-medium">
+              Display Name
+            </label>
+            <Input
+              id="displayName"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Your name"
+            />
+          </div>
+
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>About</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground space-y-2">
+          <p><strong>Todo List Manager</strong> v1.0.0</p>
+          <p>A cloud-synced task manager across projects.</p>
+          <p>Features: Projects, Tasks with status lanes, Done archive, Activity logging.</p>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
