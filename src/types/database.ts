@@ -3,6 +3,7 @@
 
 export type TaskStatus = 'inbox' | 'today' | 'next' | 'waiting' | 'blocked' | 'someday' | 'done'
 export type TaskPriority = '1' | '2' | '3' | '4'
+export type EnergyLevel = 'low' | 'medium' | 'high'
 export type ActivityAction = 'create' | 'update' | 'move' | 'complete' | 'reopen' | 'delete'
 
 export interface Profile {
@@ -40,6 +41,9 @@ export interface Task {
   actual_hours: number | null
   status: TaskStatus
   priority: TaskPriority
+  energy_level: EnergyLevel | null
+  blocked_by: string | null
+  brain_dump_id: string | null
   completed_at: string | null
   outcome_note: string | null
   sort_order: number
@@ -59,9 +63,34 @@ export interface ActivityLog {
   created_at: string
 }
 
+// V1.5 Types
+export interface FocusSession {
+  id: string
+  user_id: string
+  task_id: string
+  started_at: string
+  ended_at: string | null
+  duration_minutes: number | null
+  notes: string | null
+  created_at: string
+}
+
+export interface BrainDumpSession {
+  id: string
+  user_id: string
+  default_project_id: string | null
+  raw_input: string
+  parsed_count: number
+  created_at: string
+}
+
 // Joined types
 export interface TaskWithProject extends Task {
   project: Project
+}
+
+export interface TaskWithBlocker extends Task {
+  blocking_task?: Task | null
 }
 
 // Insert/Update types

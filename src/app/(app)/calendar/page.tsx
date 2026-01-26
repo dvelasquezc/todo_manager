@@ -1,50 +1,79 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { format, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { WeekView } from '@/components/calendar/week-view'
-import { getTasksForCalendar } from '@/actions/tasks'
-import { ChevronLeft, ChevronRight, Calendar, Clock, CheckCircle } from 'lucide-react'
+import { SpanningWeekView } from '@/components/calendar/spanning-week-view'
+import { CalendarFrictionAlerts } from '@/components/calendar/friction-alerts'
+import { getTasksForCalendar, getInProgressTasksForCalendar } from '@/actions/tasks'
+import { ChevronLeft, ChevronRight, Calendar, Clock, CheckCircle, AlertCircle, PlayCircle } from 'lucide-react'
 import type { Task, Project } from '@/types/database'
 
 type TaskWithProject = Task & { project?: Project }
 
-type TabType = 'due' | 'starting' | 'completed'
+type TabType = 'due' | 'starting' | 'completed' | 'inprogress'
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [activeTab, setActiveTab] = useState<TabType>('due')
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
   const [tasks, setTasks] = useState<{
     dueTasks: TaskWithProject[]
     startTasks: TaskWithProject[]
     completedTasks: TaskWithProject[]
+    inProgressTasks: TaskWithProject[]
   }>({
     dueTasks: [],
     startTasks: [],
     completedTasks: [],
+    inProgressTasks: [],
   })
 
-  // Get week boundaries
-  const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
-  const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 })
+  // Get week boundaries - memoized to prevent unnecessary recalculations
+  const weekStart = useMemo(() => startOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate])
+  const weekEnd = useMemo(() => endOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate])
 
-  // Fetch tasks when week changes
+  // Fetch tasks when week changes or when refreshKey changes
   useEffect(() => {
     async function fetchTasks() {
       setLoading(true)
-      const result = await getTasksForCalendar(
-        format(weekStart, 'yyyy-MM-dd'),
-        format(weekEnd, 'yyyy-MM-dd')
-      )
-      if (result.data) {
-        setTasks(result.data as typeof tasks)
+      setError(null)
+      try {
+        const startStr = format(weekStart, 'yyyy-MM-dd')
+        const endStr = format(weekEnd, 'yyyy-MM-dd')
+
+        // Fetch all task types in parallel
+        const [calendarResult, inProgressResult] = await Promise.all([
+          getTasksForCalendar(startStr, endStr),
+          getInProgressTasksForCalendar(startStr, endStr),
+        ])
+
+        if (calendarResult.error) {
+          setError(calendarResult.error)
+        } else if (calendarResult.data) {
+          setTasks({
+            dueTasks: calendarResult.data.dueTasks,
+            startTasks: calendarResult.data.startTasks,
+            completedTasks: calendarResult.data.completedTasks,
+            inProgressTasks: inProgressResult.data || [],
+          })
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load calendar')
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
     fetchTasks()
-  }, [currentDate])
+  }, [weekStart, weekEnd, refreshKey])
+
+  // Callback to refresh tasks after a task is moved
+  const handleTaskMoved = useCallback(() => {
+    setRefreshKey((prev) => prev + 1)
+  }, [])
 
   const goToPreviousWeek = () => setCurrentDate(subWeeks(currentDate, 1))
   const goToNextWeek = () => setCurrentDate(addWeeks(currentDate, 1))
@@ -62,6 +91,12 @@ export default function CalendarPage() {
       label: 'Starting Soon',
       icon: Clock,
       count: tasks.startTasks.length,
+    },
+    {
+      id: 'inprogress' as const,
+      label: 'In Progress',
+      icon: PlayCircle,
+      count: tasks.inProgressTasks.length,
     },
     {
       id: 'completed' as const,
@@ -127,6 +162,19 @@ export default function CalendarPage() {
         <div className="py-12 text-center text-muted-foreground">
           Loading...
         </div>
+      ) : error ? (
+        <div className="py-12 text-center">
+          <AlertCircle className="h-12 w-12 mx-auto mb-4 text-destructive" />
+          <p className="text-destructive font-medium">Error loading calendar</p>
+          <p className="text-sm text-muted-foreground mt-1">{error}</p>
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={() => setCurrentDate(new Date(currentDate))}
+          >
+            Try Again
+          </Button>
+        </div>
       ) : (
         <>
           {activeTab === 'due' && (
@@ -136,6 +184,7 @@ export default function CalendarPage() {
               dateField="due_date"
               variant="due"
               emptyMessage="No tasks due this week"
+              onTaskMoved={handleTaskMoved}
             />
           )}
           {activeTab === 'starting' && (
@@ -145,6 +194,15 @@ export default function CalendarPage() {
               dateField="start_date"
               variant="start"
               emptyMessage="No tasks starting this week"
+              onTaskMoved={handleTaskMoved}
+            />
+          )}
+          {activeTab === 'inprogress' && (
+            <SpanningWeekView
+              currentDate={currentDate}
+              tasks={tasks.inProgressTasks}
+              emptyMessage="No tasks in progress (tasks need a start date to appear here)"
+              onTaskMoved={handleTaskMoved}
             />
           )}
           {activeTab === 'completed' && (
@@ -157,6 +215,11 @@ export default function CalendarPage() {
             />
           )}
         </>
+      )}
+
+      {/* Friction Alerts Section */}
+      {!loading && !error && (
+        <CalendarFrictionAlerts />
       )}
     </div>
   )

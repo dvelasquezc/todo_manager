@@ -1,9 +1,12 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Inbox, Sun, Calendar, Archive, Settings, Plus, FolderKanban } from 'lucide-react'
+import { Inbox, Sun, Calendar, Archive, Settings, Plus, FolderKanban, Brain, BarChart3 } from 'lucide-react'
+import { BrainDumpModal } from '@/components/tasks/brain-dump-modal'
+import { FocusTimerIndicator } from '@/components/tasks/focus-timer'
 import type { Project } from '@/types/database'
 
 interface SidebarProps {
@@ -12,11 +15,13 @@ interface SidebarProps {
 
 export function Sidebar({ projects }: SidebarProps) {
   const pathname = usePathname()
+  const [brainDumpOpen, setBrainDumpOpen] = useState(false)
 
   const navItems = [
     { href: '/inbox', label: 'Inbox', icon: Inbox },
     { href: '/today', label: 'Today', icon: Sun },
     { href: '/calendar', label: 'Calendar', icon: Calendar },
+    { href: '/dashboard', label: 'Dashboard', icon: BarChart3 },
   ]
 
   const systemProjects = projects.filter(p => p.is_system)
@@ -26,13 +31,29 @@ export function Sidebar({ projects }: SidebarProps) {
     <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 bg-muted/30 border-r">
       <div className="flex flex-col flex-1 min-h-0 pt-5 pb-4">
         {/* Logo */}
-        <div className="flex items-center flex-shrink-0 px-4 mb-6">
+        <div className="flex items-center flex-shrink-0 px-4 mb-4">
           <FolderKanban className="h-8 w-8 text-primary" />
           <span className="ml-2 text-xl font-bold">Todo Manager</span>
         </div>
 
+        {/* Focus Timer Indicator */}
+        <div className="px-4 mb-4">
+          <FocusTimerIndicator />
+        </div>
+
+        {/* Brain Dump Button */}
+        <div className="px-2 mb-4">
+          <button
+            onClick={() => setBrainDumpOpen(true)}
+            className="flex w-full items-center px-3 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md transition-colors hover:bg-primary/90"
+          >
+            <Brain className="mr-3 h-5 w-5" />
+            Brain Dump
+          </button>
+        </div>
+
         {/* Main nav */}
-        <nav className="flex-1 px-2 space-y-1">
+        <nav className="flex-1 px-2 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = pathname === item.href
             return (
@@ -156,6 +177,12 @@ export function Sidebar({ projects }: SidebarProps) {
           </Link>
         </div>
       </div>
+
+      {/* Brain Dump Modal */}
+      <BrainDumpModal
+        open={brainDumpOpen}
+        onOpenChange={setBrainDumpOpen}
+      />
     </aside>
   )
 }

@@ -28,7 +28,21 @@
       "Bash(Remove-Item -Force \"C:\\\\Users\\\\DVelasquez\\\\Dropbox\\\\apps\\\\todolistmanager\\\\.next\\\\dev\\\\lock\")",
       "Bash(netstat:*)",
       "Bash(findstr:*)",
-      "Bash(powershell -Command \"Stop-Process -Id 150540 -Force -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force ''C:\\\\Users\\\\DVelasquez\\\\Dropbox\\\\apps\\\\todolistmanager\\\\.next'' -ErrorAction SilentlyContinue; Write-Host ''Done''\")"
+      "Bash(powershell -Command \"Stop-Process -Id 150540 -Force -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force ''C:\\\\Users\\\\DVelasquez\\\\Dropbox\\\\apps\\\\todolistmanager\\\\.next'' -ErrorAction SilentlyContinue; Write-Host ''Done''\")",
+      "Bash(npx tsc:*)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(npm install:*)",
+      "Bash(taskkill:*)",
+      "Bash(powershell \"Stop-Process -Id 54924 -Force\")",
+      "Bash(powershell \"Remove-Item -Recurse -Force ''C:\\\\Users\\\\DVelasquez\\\\Dropbox\\\\apps\\\\todolistmanager\\\\.next'' -ErrorAction SilentlyContinue\")",
+      "Bash(ls:*)",
+      "Bash(powershell:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(Select-String \"task-card\" -SimpleMatch)",
+      "Bash(Get-Content \"C:\\\\Users\\\\danielvc\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-DVelasquez-Dropbox-apps-todolistmanager\\\\tasks\\\\b9adebd.output\" -Tail 50)",
+      "Bash(npm run build:*)",
+      "Bash(curl:*)",
+      "Bash(dir /B \"C:\\\\Users\\\\DVelasquez\\\\Dropbox\\\\apps\\\\todolistmanager\\\\src\")"
     ]
   }
 }

@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { TaskCard } from '@/components/tasks/task-card'
-import { Select } from '@/components/ui/select'
+import { deleteTask } from '@/actions/tasks'
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths, format } from 'date-fns'
-import { Archive } from 'lucide-react'
+import { Archive, Trash2, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { Task, Project } from '@/types/database'
+
+const PAGE_SIZE = 50
 
 type DateFilter = 'this-week' | 'last-week' | 'this-month' | 'last-month' | 'all'
 
@@ -20,16 +22,27 @@ export default function ArchivePage() {
   const [dateFilter, setDateFilter] = useState<DateFilter>('this-week')
   const [projectFilter, setProjectFilter] = useState<string>('all')
   const [loading, setLoading] = useState(true)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
 
   useEffect(() => {
     async function fetchData() {
       setLoading(true)
       const supabase = createClient()
 
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setLoading(false)
+        return
+      }
+
       // Fetch projects
       const { data: projectsData } = await supabase
         .from('projects')
         .select('*')
+        .eq('user_id', user.id)
         .order('sort_order')
 
       setProjects(projectsData || [])
@@ -62,18 +75,35 @@ export default function ArchivePage() {
       let query = supabase
         .from('tasks')
         .select('*, project:projects(*)')
+        .eq('user_id', user.id)
         .eq('status', 'done')
         .order('completed_at', { ascending: false })
 
       if (startDate && endDate) {
+        // Use date strings directly with UTC time boundaries to avoid timezone shifts
+        const startISO = format(startDate, 'yyyy-MM-dd') + 'T00:00:00.000Z'
+        const endISO = format(endDate, 'yyyy-MM-dd') + 'T23:59:59.999Z'
         query = query
-          .gte('completed_at', startDate.toISOString())
-          .lte('completed_at', endDate.toISOString())
+          .gte('completed_at', startISO)
+          .lte('completed_at', endISO)
       }
 
       if (projectFilter !== 'all') {
         query = query.eq('project_id', projectFilter)
       }
+
+      // Get total count first
+      const { count } = await supabase
+        .from('tasks')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('status', 'done')
+
+      setTotalCount(count || 0)
+
+      // Apply pagination
+      const offset = (page - 1) * PAGE_SIZE
+      query = query.range(offset, offset + PAGE_SIZE - 1)
 
       const { data: tasksData } = await query
 
@@ -82,7 +112,23 @@ export default function ArchivePage() {
     }
 
     fetchData()
+  }, [dateFilter, projectFilter, page])
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setPage(1)
   }, [dateFilter, projectFilter])
+
+  const handleDelete = async (taskId: string) => {
+    if (!confirm('Permanently delete this task? This will affect your dashboard stats.')) return
+    setDeletingId(taskId)
+    const result = await deleteTask(taskId)
+    if (!result.error) {
+      setTasks(prev => prev.filter(t => t.id !== taskId))
+      setTotalCount(prev => prev - 1)
+    }
+    setDeletingId(null)
+  }
 
   // Calculate stats
   const totalTasks = tasks.length
@@ -97,22 +143,22 @@ export default function ArchivePage() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
-        <Select
+        <select
           value={dateFilter}
           onChange={(e) => setDateFilter(e.target.value as DateFilter)}
-          className="w-40"
+          className="w-40 h-10 px-3 rounded-md border border-input bg-background text-sm"
         >
           <option value="this-week">This Week</option>
           <option value="last-week">Last Week</option>
           <option value="this-month">This Month</option>
           <option value="last-month">Last Month</option>
           <option value="all">All Time</option>
-        </Select>
+        </select>
 
-        <Select
+        <select
           value={projectFilter}
           onChange={(e) => setProjectFilter(e.target.value)}
-          className="w-40"
+          className="w-40 h-10 px-3 rounded-md border border-input bg-background text-sm"
         >
           <option value="all">All Projects</option>
           {projects.map((project) => (
@@ -120,7 +166,7 @@ export default function ArchivePage() {
               {project.name}
             </option>
           ))}
-        </Select>
+        </select>
       </div>
 
       {/* Stats */}
@@ -182,9 +228,48 @@ export default function ArchivePage() {
                     </p>
                   )}
                 </div>
+                <button
+                  onClick={() => handleDelete(task.id)}
+                  disabled={deletingId === task.id}
+                  className="p-2 text-muted-foreground hover:text-destructive transition-colors"
+                  title="Delete permanently"
+                >
+                  {deletingId === task.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </button>
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalCount > PAGE_SIZE && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <button
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="flex items-center gap-1 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Previous
+          </button>
+
+          <span className="px-3 py-2 text-sm text-muted-foreground">
+            Page {page} of {Math.ceil(totalCount / PAGE_SIZE)}
+          </span>
+
+          <button
+            onClick={() => setPage(p => p + 1)}
+            disabled={page >= Math.ceil(totalCount / PAGE_SIZE)}
+            className="flex items-center gap-1 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+            <ChevronRight className="h-4 w-4" />
+          </button>
         </div>
       )}
     </div>

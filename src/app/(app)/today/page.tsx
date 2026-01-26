@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
-import { TaskCard } from '@/components/tasks/task-card'
+import { TaskList } from '@/components/tasks/task-list'
+import { FocusSummaryCard } from '@/components/tasks/focus-summary-card'
 import { Sun } from 'lucide-react'
+import type { Project } from '@/types/database'
 
 export default async function TodayPage() {
   const supabase = await createClient()
@@ -13,7 +15,7 @@ export default async function TodayPage() {
     .order('sort_order')
 
   // Create a map of projects for the task cards
-  const projectMap: Record<string, (typeof tasks)[0]['project']> = {}
+  const projectMap: Record<string, Project> = {}
   tasks?.forEach((task) => {
     if (task.project) {
       projectMap[task.project.id] = task.project
@@ -21,8 +23,8 @@ export default async function TodayPage() {
   })
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
+    <div className="max-w-5xl mx-auto">
+      <div className="flex items-center gap-3 mb-6">
         <Sun className="h-6 w-6 text-yellow-500" />
         <h1 className="text-2xl font-bold">Today</h1>
         <span className="text-muted-foreground">
@@ -30,23 +32,28 @@ export default async function TodayPage() {
         </span>
       </div>
 
-      <div className="space-y-2">
-        {tasks?.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <Sun className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No tasks for today</p>
-            <p className="text-sm">Move tasks to Today from your projects or inbox</p>
-          </div>
-        ) : (
-          tasks?.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              project={projectMap[task.project_id]}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Task list */}
+        <div className="lg:col-span-2">
+          {tasks?.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Sun className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No tasks for today</p>
+              <p className="text-sm">Move tasks to Today from your projects or inbox</p>
+            </div>
+          ) : (
+            <TaskList
+              tasks={tasks || []}
+              projects={projectMap}
               showProject
             />
-          ))
-        )}
+          )}
+        </div>
+
+        {/* Focus summary sidebar */}
+        <div className="lg:col-span-1">
+          <FocusSummaryCard />
+        </div>
       </div>
     </div>
   )

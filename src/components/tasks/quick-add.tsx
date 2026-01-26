@@ -1,52 +1,115 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { createTask } from '@/actions/tasks'
-import { Plus, Calendar, Clock, FileText, Info } from 'lucide-react'
+import { getProjects } from '@/actions/projects'
+import { Plus, Calendar, Clock, FileText, Info, Battery, Link2 } from 'lucide-react'
+import { EnergySelector } from '@/components/ui/energy-selector'
+import { DependencySelector } from '@/components/tasks/dependency-selector'
+import type { EnergyLevel, TaskStatus, TaskPriority, Project } from '@/types/database'
 
 interface QuickAddProps {
-  projectId: string
+  projectId?: string
   placeholder?: string
 }
+
+const statusOptions: { value: TaskStatus; label: string }[] = [
+  { value: 'inbox', label: 'Inbox' },
+  { value: 'today', label: 'Today' },
+  { value: 'next', label: 'Next' },
+  { value: 'waiting', label: 'Waiting' },
+  { value: 'blocked', label: 'Blocked' },
+  { value: 'someday', label: 'Someday' },
+]
+
+const priorityOptions: { value: TaskPriority; label: string }[] = [
+  { value: '1', label: 'P1 - Urgent' },
+  { value: '2', label: 'P2 - High' },
+  { value: '3', label: 'P3 - Medium' },
+  { value: '4', label: 'P4 - Low' },
+]
 
 export function QuickAdd({ projectId }: QuickAddProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [projects, setProjects] = useState<Project[]>([])
 
   // Form fields
   const [title, setTitle] = useState('')
   const [notes, setNotes] = useState('')
+  const [selectedProjectId, setSelectedProjectId] = useState(projectId || '')
+  const [status, setStatus] = useState<TaskStatus>('inbox')
+  const [priority, setPriority] = useState<TaskPriority>('4')
   const [startDate, setStartDate] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [estimateHours, setEstimateHours] = useState('')
+  const [energyLevel, setEnergyLevel] = useState<EnergyLevel | null>(null)
+  const [blockedBy, setBlockedBy] = useState<string | null>(null)
+
+  // Load projects on mount
+  useEffect(() => {
+    async function loadProjects() {
+      const result = await getProjects()
+      if (result.data) {
+        setProjects(result.data)
+        // Set default project if not provided
+        if (!projectId && result.data.length > 0) {
+          setSelectedProjectId(result.data[0].id)
+        }
+      }
+    }
+    loadProjects()
+  }, [projectId])
+
+  // Update selectedProjectId when prop changes
+  useEffect(() => {
+    if (projectId) {
+      setSelectedProjectId(projectId)
+    }
+  }, [projectId])
 
   function resetForm() {
     setTitle('')
     setNotes('')
+    setSelectedProjectId(projectId || projects[0]?.id || '')
+    setStatus('inbox')
+    setPriority('4')
     setStartDate('')
     setDueDate('')
     setEstimateHours('')
+    setEnergyLevel(null)
+    setBlockedBy(null)
     setIsExpanded(false)
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!title.trim()) return
+    if (!title.trim() || !selectedProjectId) return
 
     setIsSubmitting(true)
 
     const result = await createTask({
       title: title.trim(),
       notes: notes.trim() || null,
-      project_id: projectId,
+      project_id: selectedProjectId,
       start_date: startDate || null,
       due_date: dueDate || null,
       estimate_hours: estimateHours ? parseFloat(estimateHours) : null,
-      status: 'inbox',
+      energy_level: energyLevel,
+      blocked_by: blockedBy,
+      status,
+      priority,
     })
 
     setIsSubmitting(false)
@@ -117,6 +180,64 @@ export function QuickAdd({ projectId }: QuickAddProps) {
             <p className="text-xs text-muted-foreground">Optional notes about this task</p>
           </div>
 
+          {/* Project & Status row */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Project</label>
+              <Select value={selectedProjectId} onValueChange={setSelectedProjectId} disabled={isSubmitting}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select project" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      <span className="flex items-center gap-2">
+                        <span
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: p.color }}
+                        />
+                        {p.name}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Status</label>
+              <Select value={status} onValueChange={(v) => setStatus(v as TaskStatus)} disabled={isSubmitting}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Priority */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Priority</label>
+            <Select value={priority} onValueChange={(v) => setPriority(v as TaskPriority)} disabled={isSubmitting}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {priorityOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Dates row */}
           <div className="grid grid-cols-2 gap-4">
             {/* Start Date */}
@@ -173,6 +294,34 @@ export function QuickAdd({ projectId }: QuickAddProps) {
             <p className="text-xs text-muted-foreground">How long you think it will take</p>
           </div>
 
+          {/* Energy Level */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium flex items-center gap-1">
+              <Battery className="h-3 w-3" />
+              Energy Level
+            </label>
+            <EnergySelector
+              value={energyLevel}
+              onChange={setEnergyLevel}
+              size="sm"
+            />
+            <p className="text-xs text-muted-foreground">How much focus this task requires</p>
+          </div>
+
+          {/* Blocked By */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium flex items-center gap-1">
+              <Link2 className="h-3 w-3" />
+              Blocked By
+            </label>
+            <DependencySelector
+              value={blockedBy}
+              onChange={setBlockedBy}
+              projectId={selectedProjectId}
+            />
+            <p className="text-xs text-muted-foreground">Task that must be completed first</p>
+          </div>
+
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-2">
             <Button
@@ -183,7 +332,7 @@ export function QuickAdd({ projectId }: QuickAddProps) {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={!title.trim() || isSubmitting}>
+            <Button type="submit" disabled={!title.trim() || !selectedProjectId || isSubmitting}>
               {isSubmitting ? 'Adding...' : 'Add Task'}
             </Button>
           </div>

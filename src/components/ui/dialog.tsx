@@ -61,12 +61,12 @@ function DialogContent({ children, className }: { children: React.ReactNode; cla
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
-        className="fixed inset-0 bg-black/50"
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm"
         onClick={() => setOpen(false)}
       />
       <div
         className={cn(
-          'relative z-50 w-full max-w-lg rounded-lg border bg-background p-6 shadow-lg',
+          'relative z-50 w-full max-w-lg rounded-lg border bg-white dark:bg-slate-900 p-6 shadow-2xl',
           'animate-in fade-in-0 zoom-in-95',
           className
         )}

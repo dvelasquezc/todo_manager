@@ -5,6 +5,13 @@ import { createClient } from '@/lib/supabase/server'
 import { createProjectSchema, updateProjectSchema } from '@/lib/validations'
 import type { CreateProjectInput, UpdateProjectInput } from '@/lib/validations'
 
+// Helper to revalidate project-related paths
+function revalidateProjectPaths() {
+  revalidatePath('/inbox')
+  revalidatePath('/projects', 'page')
+  revalidatePath('/dashboard')
+}
+
 function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -22,7 +29,7 @@ export async function createProject(input: CreateProjectInput) {
 
   const validated = createProjectSchema.safeParse(input)
   if (!validated.success) {
-    return { error: validated.error.errors[0].message }
+    return { error: validated.error.issues[0].message }
   }
 
   const { name, description, color, icon } = validated.data
@@ -75,7 +82,7 @@ export async function createProject(input: CreateProjectInput) {
     return { error: error.message }
   }
 
-  revalidatePath('/', 'layout')
+  revalidateProjectPaths()
   return { data }
 }
 
@@ -89,7 +96,7 @@ export async function updateProject(id: string, input: UpdateProjectInput) {
 
   const validated = updateProjectSchema.safeParse(input)
   if (!validated.success) {
-    return { error: validated.error.errors[0].message }
+    return { error: validated.error.issues[0].message }
   }
 
   const { data, error } = await supabase
@@ -104,7 +111,7 @@ export async function updateProject(id: string, input: UpdateProjectInput) {
     return { error: error.message }
   }
 
-  revalidatePath('/', 'layout')
+  revalidateProjectPaths()
   return { data }
 }
 
@@ -137,7 +144,7 @@ export async function deleteProject(id: string) {
     return { error: error.message }
   }
 
-  revalidatePath('/', 'layout')
+  revalidateProjectPaths()
   return { success: true }
 }
 
@@ -162,7 +169,7 @@ export async function archiveProject(id: string) {
     return { error: error.message }
   }
 
-  revalidatePath('/', 'layout')
+  revalidateProjectPaths()
   return { data }
 }
 
