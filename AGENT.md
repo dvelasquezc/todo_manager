@@ -78,7 +78,7 @@ const dateKey = dateString.slice(0, 10)
 See `progression.md` for the full roadmap (V1→V7).
 See `progression_report.md` for detailed implementation notes.
 
-Current: **V1.5** - Tasks, Projects, Calendar, Focus Timer, Friction Alerts (ready for V2)
+Current: **V2** - Tasks, Projects, Calendar, Focus Timer, Dashboard Analytics, Friction Alerts
 
 ## Development Workflow
 

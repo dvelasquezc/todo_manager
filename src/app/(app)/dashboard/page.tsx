@@ -16,6 +16,7 @@ import { WipAgingChart } from '@/components/dashboard/wip-aging-chart'
 import { CycleTimeChart } from '@/components/dashboard/cycle-time-chart'
 import { DailyCompletionChart } from '@/components/dashboard/daily-completion-chart'
 import { DayOfWeekChart } from '@/components/dashboard/day-of-week-chart'
+import { TotalHoursByProjectChart } from '@/components/dashboard/total-hours-by-project-chart'
 import {
   getWeeklyStats,
   getHoursByProjectWeekly,
@@ -29,6 +30,7 @@ import {
   getCycleTimeByProject,
   getDailyTaskCompletion,
   getProductivityByDayOfWeek,
+  getTotalHoursByProject,
   getProjectsForDashboard,
   type WeeklyStats,
   type HoursByProjectWeek,
@@ -42,6 +44,7 @@ import {
   type CycleTimeByProject,
   type DailyCompletion,
   type DayOfWeekStats,
+  type TotalHoursByProject,
 } from '@/actions/analytics'
 
 type TimeFilter = '1w' | '2w' | '4w' | '8w' | '3m' | '1y' | 'all'
@@ -112,6 +115,7 @@ export default function DashboardPage() {
   const [cycleTime, setCycleTime] = useState<CycleTimeByProject[]>([])
   const [dailyCompletion, setDailyCompletion] = useState<DailyCompletion[]>([])
   const [dayOfWeekStats, setDayOfWeekStats] = useState<DayOfWeekStats[]>([])
+  const [totalHoursByProject, setTotalHoursByProject] = useState<TotalHoursByProject[]>([])
 
   useEffect(() => {
     // Wait until projects are loaded before fetching data
@@ -139,6 +143,7 @@ export default function DashboardPage() {
           cycleResult,
           dailyResult,
           dayOfWeekResult,
+          totalHoursResult,
         ] = await Promise.all([
           getWeeklyStats(),
           getHoursByProjectWeekly(selectedWeeks, projectIds),
@@ -152,6 +157,7 @@ export default function DashboardPage() {
           getCycleTimeByProject(selectedWeeks, projectIds),
           getDailyTaskCompletion(selectedWeeks, projectIds),
           getProductivityByDayOfWeek(selectedWeeks, projectIds),
+          getTotalHoursByProject(selectedWeeks, projectIds),
         ])
 
         if (statsResult.data) setWeeklyStats(statsResult.data)
@@ -166,6 +172,7 @@ export default function DashboardPage() {
         if (cycleResult.data) setCycleTime(cycleResult.data)
         if (dailyResult.data) setDailyCompletion(dailyResult.data)
         if (dayOfWeekResult.data) setDayOfWeekStats(dayOfWeekResult.data)
+        if (totalHoursResult.data) setTotalHoursByProject(totalHoursResult.data)
       } catch (err) {
         setError('Failed to load dashboard data')
         console.error(err)
@@ -356,22 +363,23 @@ export default function DashboardPage() {
         <div className="bg-card border rounded-lg p-4">
           <h3 className="font-semibold mb-4 flex items-center gap-1">
             Productivity by Day of Week
-            <HelpTooltip content="Average hours worked (blue) and tasks completed (green) per weekday. When 'This Week' is selected, shows only data from current Mon-Sun." />
+            <HelpTooltip content="Average hours worked and tasks completed on each weekday, calculated only from days with recorded activity." />
           </h3>
           <DayOfWeekChart data={dayOfWeekStats} />
         </div>
 
-        {/* Row 2: Hours + Deep Work */}
+        {/* Row 2: Hours by Project + Deep Work */}
         <LazySection>
           <div className="bg-card border rounded-lg p-4">
             <h3 className="font-semibold mb-4 flex items-center gap-1">
               Hours by Project
-              <HelpTooltip content="Distribution of your focus time across projects this week." />
+              <HelpTooltip content="Distribution of your focus time across projects by week." />
             </h3>
             <HoursByProjectChart data={hoursByProject} />
           </div>
         </LazySection>
 
+        {/* Row 3: Deep Work */}
         <LazySection>
           <div className="bg-card border rounded-lg p-4">
             <h3 className="font-semibold mb-4 flex items-center gap-1">
@@ -453,6 +461,17 @@ export default function DashboardPage() {
               <HelpTooltip content="Average days from task creation to completion per project. Lower cycle time means faster delivery." />
             </h3>
             <CycleTimeChart data={cycleTime} />
+          </div>
+        </LazySection>
+
+        {/* Row 7: Total Hours by Project (full width) */}
+        <LazySection>
+          <div className="bg-card border rounded-lg p-4 lg:col-span-2">
+            <h3 className="font-semibold mb-4 flex items-center gap-1">
+              Total Hours by Project
+              <HelpTooltip content="Total focus time per project for the selected time period." />
+            </h3>
+            <TotalHoursByProjectChart data={totalHoursByProject} />
           </div>
         </LazySection>
       </div>

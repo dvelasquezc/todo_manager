@@ -5,6 +5,8 @@ import { format, startOfWeek, addDays, isToday } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { CalendarTaskCard } from './calendar-task-card'
 import { rescheduleTask } from '@/actions/tasks'
+import { useTimezone } from '@/components/providers/timezone-provider'
+import { getLocalDateString } from '@/lib/timezone'
 import type { Task, Project } from '@/types/database'
 
 type TaskWithProject = Task & { project?: Project }
@@ -26,6 +28,7 @@ export function WeekView({
   emptyMessage = 'No tasks this week',
   onTaskMoved,
 }: WeekViewProps) {
+  const timezone = useTimezone()
   const [dragOverDay, setDragOverDay] = useState<string | null>(null)
   const [isMoving, setIsMoving] = useState(false)
 
@@ -45,9 +48,16 @@ export function WeekView({
       const dateValue = task[dateField]
       if (!dateValue) return
 
-      // Extract just the date part (yyyy-MM-dd) to avoid timezone issues
-      // dateValue could be '2026-01-20' or '2026-01-20T00:00:00.000Z'
-      const dateKey = dateValue.toString().slice(0, 10)
+      // For completed_at (UTC timestamp), convert to local date in user's timezone
+      // For start_date/due_date (date-only strings), just use the date part
+      let dateKey: string
+      if (dateField === 'completed_at') {
+        // completed_at is a full UTC timestamp - convert to local date
+        dateKey = getLocalDateString(dateValue, timezone)
+      } else {
+        // start_date/due_date are date-only strings (yyyy-MM-dd)
+        dateKey = dateValue.toString().slice(0, 10)
+      }
 
       if (!grouped[dateKey]) {
         grouped[dateKey] = []
@@ -56,7 +66,7 @@ export function WeekView({
     })
 
     return grouped
-  }, [tasks, dateField])
+  }, [tasks, dateField, timezone])
 
   const hasAnyTasks = tasks.length > 0
 

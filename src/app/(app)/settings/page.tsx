@@ -5,14 +5,19 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Settings, User } from 'lucide-react'
+import { Settings, User, Globe, Check, ChevronDown } from 'lucide-react'
+import { getBrowserTimezone, COMMON_TIMEZONES, getAllTimezones, getTimezoneLabel } from '@/lib/timezone'
 
 export default function SettingsPage() {
   const [email, setEmail] = useState('')
   const [displayName, setDisplayName] = useState('')
+  const [timezone, setTimezone] = useState('')
+  const [timezoneDropdownOpen, setTimezoneDropdownOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  const detectedTimezone = typeof window !== 'undefined' ? getBrowserTimezone() : 'America/Los_Angeles'
 
   useEffect(() => {
     async function fetchProfile() {
@@ -24,12 +29,15 @@ export default function SettingsPage() {
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('display_name')
+          .select('display_name, timezone')
           .eq('id', user.id)
           .single()
 
         if (profile) {
           setDisplayName(profile.display_name || '')
+          setTimezone(profile.timezone || getBrowserTimezone())
+        } else {
+          setTimezone(getBrowserTimezone())
         }
       }
 
@@ -54,7 +62,10 @@ export default function SettingsPage() {
 
     const { error } = await supabase
       .from('profiles')
-      .update({ display_name: displayName.trim() || null })
+      .update({
+        display_name: displayName.trim() || null,
+        timezone: timezone,
+      })
       .eq('id', user.id)
 
     if (error) {
@@ -131,6 +142,87 @@ export default function SettingsPage() {
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder="Your name"
             />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              Timezone
+            </label>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setTimezoneDropdownOpen(!timezoneDropdownOpen)}
+                className="w-full flex items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              >
+                <span>{getTimezoneLabel(timezone)}</span>
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </button>
+
+              {timezoneDropdownOpen && (
+                <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg max-h-64 overflow-y-auto">
+                  <div className="p-1">
+                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                      Detected: {getTimezoneLabel(detectedTimezone)}
+                    </div>
+                    {detectedTimezone !== timezone && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTimezone(detectedTimezone)
+                          setTimezoneDropdownOpen(false)
+                        }}
+                        className="w-full text-left px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground rounded-sm flex items-center gap-2"
+                      >
+                        <Globe className="h-4 w-4" />
+                        Use detected timezone
+                      </button>
+                    )}
+                    <div className="h-px bg-border my-1" />
+                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                      Common Timezones
+                    </div>
+                    {COMMON_TIMEZONES.map((tz) => (
+                      <button
+                        key={tz.value}
+                        type="button"
+                        onClick={() => {
+                          setTimezone(tz.value)
+                          setTimezoneDropdownOpen(false)
+                        }}
+                        className="w-full text-left px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground rounded-sm flex items-center justify-between"
+                      >
+                        <span>{tz.label}</span>
+                        {timezone === tz.value && <Check className="h-4 w-4" />}
+                      </button>
+                    ))}
+                    <div className="h-px bg-border my-1" />
+                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                      All Timezones
+                    </div>
+                    {getAllTimezones()
+                      .filter((tz) => !COMMON_TIMEZONES.some((c) => c.value === tz))
+                      .map((tz) => (
+                        <button
+                          key={tz}
+                          type="button"
+                          onClick={() => {
+                            setTimezone(tz)
+                            setTimezoneDropdownOpen(false)
+                          }}
+                          className="w-full text-left px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground rounded-sm flex items-center justify-between"
+                        >
+                          <span>{getTimezoneLabel(tz)}</span>
+                          {timezone === tz && <Check className="h-4 w-4" />}
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Times will be displayed in this timezone
+            </p>
           </div>
 
           <Button onClick={handleSave} disabled={saving}>

@@ -383,7 +383,9 @@ export async function getTotalHoursByProject(weeks: number = 4, projectIds?: str
     sessionsQuery = sessionsQuery.gte('started_at', startDateISO)
   }
 
-  const { data: sessions } = await sessionsQuery
+  const { data: sessions, error: sessionsError } = await sessionsQuery
+
+  console.log('[getTotalHoursByProject] weeks:', weeks, 'startDateISO:', startDateISO, 'sessions:', sessions?.length, 'error:', sessionsError)
 
   if (!sessions) {
     return { data: [], error: null }

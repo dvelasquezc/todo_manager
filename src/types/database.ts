@@ -10,6 +10,7 @@ export interface Profile {
   id: string
   email: string
   display_name: string | null
+  timezone: string  // IANA timezone identifier (e.g., 'America/Los_Angeles')
   created_at: string
   updated_at: string
 }

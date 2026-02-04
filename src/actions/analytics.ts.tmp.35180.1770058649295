@@ -383,7 +383,9 @@ export async function getTotalHoursByProject(weeks: number = 4, projectIds?: str
     sessionsQuery = sessionsQuery.gte('started_at', startDateISO)
   }
 
-  const { data: sessions } = await sessionsQuery
+  const { data: sessions, error: sessionsError } = await sessionsQuery
+
+  console.log('[getTotalHoursByProject] weeks:', weeks, 'startDateISO:', startDateISO, 'sessions:', sessions?.length, 'error:', sessionsError)
 
   if (!sessions) {
     return { data: [], error: null }
@@ -391,16 +393,26 @@ export async function getTotalHoursByProject(weeks: number = 4, projectIds?: str
 
   // Aggregate by project
   const projectTotals = new Map<string, number>()
+  let skippedNoProject = 0
+  let skippedFiltered = 0
 
   for (const session of sessions) {
     const taskData = session.task as unknown as { project_id: string } | null
     const projectId = taskData?.project_id
-    if (!projectId) continue
-    if (projectIds && projectIds.length > 0 && !projectIds.includes(projectId)) continue
+    if (!projectId) {
+      skippedNoProject++
+      continue
+    }
+    if (projectIds && projectIds.length > 0 && !projectIds.includes(projectId)) {
+      skippedFiltered++
+      continue
+    }
 
     const current = projectTotals.get(projectId) || 0
     projectTotals.set(projectId, current + (session.duration_minutes || 0))
   }
+
+  console.log('[getTotalHoursByProject] skippedNoProject:', skippedNoProject, 'skippedFiltered:', skippedFiltered, 'projectTotals size:', projectTotals.size)
 
   // Convert to array with project info
   const result: TotalHoursByProject[] = []
@@ -416,6 +428,8 @@ export async function getTotalHoursByProject(weeks: number = 4, projectIds?: str
 
   // Sort by total hours descending
   result.sort((a, b) => b.totalHours - a.totalHours)
+
+  console.log('[getTotalHoursByProject] result:', result.length, 'items:', result.map(r => `${r.projectName}: ${r.totalHours}h`).join(', '))
 
   return { data: result, error: null }
 }

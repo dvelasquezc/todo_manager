@@ -96,6 +96,8 @@ export function ContextSwitchingChart({ data }: ContextSwitchingChartProps) {
 }
 
 function formatDayLabel(isoDate: string): string {
-  const date = new Date(isoDate)
+  // Parse YYYY-MM-DD without timezone shifting
+  const [year, month, day] = isoDate.split('-').map(Number)
+  const date = new Date(year, month - 1, day) // Local date, not UTC
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }

@@ -137,8 +137,7 @@ export default function ArchivePage() {
 
   // Calculate stats
   const totalTasks = tasks.length
-  const totalEstimatedHours = tasks.reduce((sum, t) => sum + (t.estimate_hours || 0), 0)
-  const totalActualHours = tasks.reduce((sum, t) => sum + (t.actual_hours || 0), 0)
+  const totalHours = tasks.reduce((sum, t) => sum + (t.actual_hours || t.estimate_hours || 0), 0)
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -176,18 +175,14 @@ export default function ArchivePage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <div className="bg-muted/50 rounded-lg p-4">
           <p className="text-sm text-muted-foreground">Tasks Completed</p>
           <p className="text-2xl font-bold">{totalTasks}</p>
         </div>
         <div className="bg-muted/50 rounded-lg p-4">
-          <p className="text-sm text-muted-foreground">Estimated Hours</p>
-          <p className="text-2xl font-bold">{totalEstimatedHours.toFixed(1)}</p>
-        </div>
-        <div className="bg-muted/50 rounded-lg p-4">
-          <p className="text-sm text-muted-foreground">Actual Hours</p>
-          <p className="text-2xl font-bold">{totalActualHours.toFixed(1)}</p>
+          <p className="text-sm text-muted-foreground">Hours Logged</p>
+          <p className="text-2xl font-bold">{totalHours.toFixed(1)}</p>
         </div>
       </div>
 

@@ -69,7 +69,7 @@ Deliverable: "I understand how I spend time and where I'm stuck."
 
 ---
 
-## V3 — Project Chat + Task Proposals
+## V3.0 — Project Chat (Core Chatbot)
 Goal: conversational planning per project, grounded in tasks.
 
 Add:
@@ -77,15 +77,25 @@ Add:
   - Threads per project
   - Persistent history
   - Thread "Context Summary" (auto-refreshed)
-  - **Recent activity auto-injected** (last 5 task changes)
 - Chat can read project tasks and propose actions:
   - create/update/move/complete/split
 - UI shows proposed actions with Apply/Reject
-- **Conversation templates:** "Break this down", "What should I deprioritize?"
 - Link chat messages to tasks created/edited from that chat
-- Brain dump via chat: "Add these tasks: [list]"
 
 Deliverable: "Each project has its own assistant with memory + safe task editing."
+
+---
+
+## V3.5 — Chat Enhancements
+Goal: make project chat smarter and more convenient.
+
+Add:
+- **Recent activity auto-injected** (last 5 task changes)
+- **Conversation templates:** "Break this down", "What should I deprioritize?"
+- Brain dump via chat: "Add these tasks: [list]"
+- Improved context awareness
+
+Deliverable: "Chat anticipates needs and offers shortcuts."
 
 ---
 

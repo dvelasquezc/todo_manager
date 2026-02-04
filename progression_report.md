@@ -1,10 +1,11 @@
-# Progression Report - Pre-V2 Bug Fixes and Enhancements
+# Progression Report - V2 Complete
 
 ## Overview
-This report tracks progress on the pre-V2 bug fixes and enhancements for the Todo List Manager application.
+This report tracks progress on the Todo List Manager application.
 
 **Started**: 2026-01-20
-**Status**: COMPLETED
+**Current Version**: V2
+**Status**: V2 COMPLETE - Ready for V3.0 (Project Chat)
 
 ---
 
@@ -520,37 +521,48 @@ Added documentation comments to key server actions:
 
 ---
 
+## V2 Completion Session - 2026-01-26
+
+### 26. Dashboard Enhanced Filters
+**Files modified:**
+- `src/app/(app)/dashboard/page.tsx` - Added "Last Year" and "All Time" time filters, multi-select project filter
+- `src/actions/analytics.ts` - Added `projectIds` parameter to 10 analytics functions, handle `weeks=0` for all time
+
+**Features:**
+- Time filter now includes: This Week, Last 2 Weeks, Last 4 Weeks, Last 8 Weeks, Last 3 Months, Last Year, All Time
+- Project filter: multi-select dropdown, all projects selected by default
+- Charts filter by selected projects
+
+### 27. Race Condition Fix - Project Navigation
+**Files modified:**
+- `src/app/(app)/projects/[slug]/page.tsx` - Added AbortController to prevent stale data
+
+**Issue:** Rapidly clicking between projects could show wrong project's data (Project A data on Project B page).
+
+**Fix:** Added AbortController that aborts fetch when slug changes, checks `abortController.signal.aborted` before setting state.
+
+### 28. Bug Tracking System
+**Files created:**
+- `KNOWN_ISSUES.md` - Markdown file to track bugs and warnings
+
+---
+
 ## Current Status
 
-**Version:** V1.5 (ready for V2)
+**Version:** V2 (Complete)
 
-**What's New This Session:**
-- PowerShell startup guide at `docs/STARTUP.md`
-- Codebase navigation at `CODEBASE.md`
-- Sidebar scrolling fixed
-- Modal performance optimized (shared instances)
-- Optimistic task completion
-- Dashboard lazy loading
-- JSDoc comments on key functions
+**V2 Features Complete:**
+- Dashboard analytics with 11 charts
+- Time filtering (including Last Year, All Time)
+- Project filtering (multi-select)
+- Friction alerts on calendar
+- Focus timer with session tracking
+- All pre-V2 bug fixes
 
-**Files Created:**
-- `docs/STARTUP.md`
-- `CODEBASE.md`
-- `src/components/ui/lazy-section.tsx`
-
-**Files Modified:**
-- `AGENT.md`
-- `src/components/layout/sidebar.tsx`
-- `src/components/tasks/task-card.tsx`
-- `src/components/tasks/task-list.tsx`
-- `src/app/(app)/today/page.tsx`
-- `src/app/(app)/inbox/page.tsx`
-- `src/app/(app)/projects/[slug]/page.tsx`
-- `src/app/(app)/dashboard/page.tsx`
-- `src/actions/tasks.ts`
+**Next:** V3.0 - Project Chat (Core Chatbot)
 
 ---
 
 ## Reference
-- Full implementation plan: See `C:\Users\danielvc\.claude\plans\stateless-doodling-rocket.md`
-- Original requirements: See `progression.md` (V1.5 was just completed)
+- Version roadmap: See `progression.md` (V3.0 = Project Chat, V3.5 = Chat Enhancements)
+- Bug tracking: See `KNOWN_ISSUES.md`
