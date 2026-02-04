@@ -29,16 +29,19 @@ src/
 │   ├── layout/         # Layout components
 │   ├── tasks/          # Task-related components
 │   ├── calendar/       # Calendar views and components
-│   └── dashboard/      # Analytics charts
+│   ├── dashboard/      # Analytics charts
+│   └── ai-assistant/   # AI Assistant panel and chat components
 ├── lib/                # Utilities
-│   └── supabase/       # Supabase clients
+│   ├── supabase/       # Supabase clients
+│   └── ai/             # AI assistant logic (prompts, context builder)
 ├── actions/            # Server actions
 └── types/              # TypeScript types
 ```
 
 ## Database
-- Migration: `supabase/migrations/001_initial_schema.sql`
-- Tables: profiles, projects, tasks, activity_logs, focus_sessions
+- Migrations: `supabase/migrations/001_initial_schema.sql` through `005_ai_assistant.sql`
+- Tables: profiles, projects, tasks, activity_logs, focus_sessions, brain_dump_sessions
+- V3 AI Tables: ai_conversations, ai_messages, ai_proposed_actions, ai_reports
 - All tables have RLS policies for per-user data scoping
 
 ## Key Constraints
@@ -78,7 +81,15 @@ const dateKey = dateString.slice(0, 10)
 See `progression.md` for the full roadmap (V1→V7).
 See `progression_report.md` for detailed implementation notes.
 
-Current: **V2** - Tasks, Projects, Calendar, Focus Timer, Dashboard Analytics, Friction Alerts
+Current: **V3.0** - AI Assistant with chat, propose-approve actions, on-demand reports
+
+### V3.0 AI Assistant Features
+- **Right Sidebar Panel**: Collapsible AI assistant panel (desktop: fixed, mobile: modal)
+- **Model Selection**: Choose between Claude Opus (default, best for analysis) and Sonnet (fast)
+- **Propose-Approve Flow**: AI suggests task changes, user approves/rejects
+- **On-Demand Reports**: Daily Briefing, Weekly Review, Long-term Trends, Friction Analysis, Estimate Calibration
+- **User Instructions**: Persistent context the AI always knows (e.g., "I teach on Tuesdays")
+- **Conversation History**: Save or discard conversations to manage context
 
 ## Development Workflow
 

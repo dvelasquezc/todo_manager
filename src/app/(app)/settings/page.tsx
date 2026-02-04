@@ -4,9 +4,12 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Settings, User, Globe, Check, ChevronDown } from 'lucide-react'
+import { Settings, User, Globe, Check, ChevronDown, Bot } from 'lucide-react'
 import { getBrowserTimezone, COMMON_TIMEZONES, getAllTimezones, getTimezoneLabel } from '@/lib/timezone'
+import { updateAIInstructions, updateAIPreferences } from '@/actions/profiles'
+import type { AIModel } from '@/types/ai'
 
 export default function SettingsPage() {
   const [email, setEmail] = useState('')
@@ -16,6 +19,12 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  // AI Settings state
+  const [aiInstructions, setAiInstructions] = useState('')
+  const [aiDefaultModel, setAiDefaultModel] = useState<AIModel>('claude-opus-4-20250514')
+  const [savingAi, setSavingAi] = useState(false)
+  const [aiMessage, setAiMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const detectedTimezone = typeof window !== 'undefined' ? getBrowserTimezone() : 'America/Los_Angeles'
 
@@ -29,13 +38,17 @@ export default function SettingsPage() {
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('display_name, timezone')
+          .select('display_name, timezone, ai_instructions, ai_preferences')
           .eq('id', user.id)
           .single()
 
         if (profile) {
           setDisplayName(profile.display_name || '')
           setTimezone(profile.timezone || getBrowserTimezone())
+          setAiInstructions(profile.ai_instructions || '')
+          if (profile.ai_preferences?.default_model) {
+            setAiDefaultModel(profile.ai_preferences.default_model)
+          }
         } else {
           setTimezone(getBrowserTimezone())
         }
@@ -233,12 +246,114 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bot className="h-5 w-5" />
+            AI Assistant Settings
+          </CardTitle>
+          <CardDescription>Configure your AI productivity assistant</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {aiMessage && (
+            <div
+              className={`p-3 text-sm rounded-md ${
+                aiMessage.type === 'success'
+                  ? 'bg-green-500/10 text-green-600'
+                  : 'bg-destructive/10 text-destructive'
+              }`}
+            >
+              {aiMessage.text}
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <label htmlFor="aiInstructions" className="text-sm font-medium">
+              AI Instructions
+            </label>
+            <Textarea
+              id="aiInstructions"
+              value={aiInstructions}
+              onChange={(e) => setAiInstructions(e.target.value)}
+              placeholder="Add context for the AI assistant to always know about...
+
+Examples:
+- I teach on Tuesdays so I won't log hours that day
+- My research project has a grant deadline in March
+- I prefer to do deep work in the mornings"
+              rows={6}
+              maxLength={2000}
+              className="resize-none"
+            />
+            <p className="text-xs text-muted-foreground">
+              {aiInstructions.length}/2000 characters. This context is included in every AI conversation.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Default AI Model</label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setAiDefaultModel('claude-opus-4-20250514')}
+                className={`flex-1 p-3 border rounded-lg text-left transition-colors ${
+                  aiDefaultModel === 'claude-opus-4-20250514'
+                    ? 'border-primary bg-primary/5'
+                    : 'hover:bg-muted/50'
+                }`}
+              >
+                <p className="font-medium text-sm">Opus</p>
+                <p className="text-xs text-muted-foreground">Best for deep analysis</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setAiDefaultModel('claude-sonnet-4-20250514')}
+                className={`flex-1 p-3 border rounded-lg text-left transition-colors ${
+                  aiDefaultModel === 'claude-sonnet-4-20250514'
+                    ? 'border-primary bg-primary/5'
+                    : 'hover:bg-muted/50'
+                }`}
+              >
+                <p className="font-medium text-sm">Sonnet</p>
+                <p className="text-xs text-muted-foreground">Fast & efficient</p>
+              </button>
+            </div>
+          </div>
+
+          <Button
+            onClick={async () => {
+              setSavingAi(true)
+              setAiMessage(null)
+
+              const [instructionsResult, prefsResult] = await Promise.all([
+                updateAIInstructions({ instructions: aiInstructions || null }),
+                updateAIPreferences({ default_model: aiDefaultModel }),
+              ])
+
+              if (instructionsResult.error || prefsResult.error) {
+                setAiMessage({
+                  type: 'error',
+                  text: instructionsResult.error || prefsResult.error || 'Failed to save',
+                })
+              } else {
+                setAiMessage({ type: 'success', text: 'AI settings saved' })
+              }
+
+              setSavingAi(false)
+            }}
+            disabled={savingAi}
+          >
+            {savingAi ? 'Saving...' : 'Save AI Settings'}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>About</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">
-          <p><strong>Todo List Manager</strong> v1.0.0</p>
-          <p>A cloud-synced task manager across projects.</p>
-          <p>Features: Projects, Tasks with status lanes, Done archive, Activity logging.</p>
+          <p><strong>Todo List Manager</strong> v3.0.0</p>
+          <p>A cloud-synced task manager with AI productivity assistant.</p>
+          <p>Features: Projects, Tasks, Calendar, Dashboard, AI Assistant, Brain Dump.</p>
         </CardContent>
       </Card>
     </div>

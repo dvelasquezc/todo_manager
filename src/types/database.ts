@@ -11,8 +11,17 @@ export interface Profile {
   email: string
   display_name: string | null
   timezone: string  // IANA timezone identifier (e.g., 'America/Los_Angeles')
+  ai_instructions: string | null  // V3: User-provided context for AI assistant
+  ai_preferences: AIPreferencesJson | null  // V3: AI assistant preferences
   created_at: string
   updated_at: string
+}
+
+// AI Preferences stored as JSONB
+export interface AIPreferencesJson {
+  default_model: 'claude-opus-4-20250514' | 'claude-sonnet-4-20250514'
+  auto_save_conversations: boolean
+  conversation_retention_days: number
 }
 
 export interface Project {

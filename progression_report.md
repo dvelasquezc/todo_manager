@@ -1,11 +1,11 @@
-# Progression Report - V2 Complete
+# Progression Report - V3.0 Complete
 
 ## Overview
 This report tracks progress on the Todo List Manager application.
 
 **Started**: 2026-01-20
-**Current Version**: V2
-**Status**: V2 COMPLETE - Ready for V3.0 (Project Chat)
+**Current Version**: V3.0
+**Status**: V3.0 COMPLETE - AI Assistant with chat, reports, and propose-approve flow
 
 ---
 
@@ -547,22 +547,99 @@ Added documentation comments to key server actions:
 
 ---
 
+## V3.0 Implementation Session - 2026-02-03
+
+### 29. AI Assistant Core Implementation
+
+**Database Migration (`supabase/migrations/005_ai_assistant.sql`):**
+- New enums: `ai_model`, `message_role`, `action_status`, `action_type`, `report_type`
+- New tables: `ai_conversations`, `ai_messages`, `ai_proposed_actions`, `ai_reports`
+- Added `ai_instructions` TEXT column to `profiles` table
+- Added `ai_preferences` JSONB column to `profiles` table
+- RLS policies for all new tables
+- Triggers for message count and conversation updates
+
+**TypeScript Types (`src/types/ai.ts`):**
+- Complete type definitions for all AI-related entities
+- Context types for building AI prompts
+- Server action input/output types
+
+**Context Builder (`src/lib/ai/context/builder.ts`):**
+- Fetches user profile, tasks, projects, friction alerts, analytics
+- Builds comprehensive context for AI prompts
+- Reuses existing analytics functions
+
+**System Prompts (`src/lib/ai/prompts/system-prompts.ts`):**
+- Main assistant prompt with user context, analytics, and guidelines
+- Report-specific prompts for each report type
+- Summarization prompt for long conversations
+
+**AI Assistant Logic (`src/lib/ai/assistant.ts`):**
+- `sendMessage()` - Chat with AI using Anthropic API
+- `generateReportContent()` - Generate on-demand reports
+- `summarizeConversation()` - Summarize long conversations
+- Proposed action parsing from AI responses
+- Data reference extraction
+
+**Server Actions:**
+- `src/actions/ai-assistant.ts` - Message sending, report generation, conversation CRUD
+- `src/actions/ai-proposed-actions.ts` - Apply/reject proposed actions with activity logging
+- `src/actions/profiles.ts` - AI instructions and preferences management
+
+**Validation Schemas (`src/lib/validations.ts`):**
+- Added schemas for AI assistant operations
+- Model selection, report generation, proposed actions
+
+**UI Components (`src/components/ai-assistant/`):**
+- `assistant-provider.tsx` - React context for assistant state
+- `assistant-panel.tsx` - Main sidebar panel
+- `chat-interface.tsx` - Message input and display
+- `message-bubble.tsx` - Message formatting with markdown
+- `proposed-action-card.tsx` - Apply/reject UI for AI suggestions
+- `model-selector.tsx` - Opus/Sonnet toggle
+- `quick-actions.tsx` - Report generation buttons
+- `conversation-list.tsx` - Saved conversations list
+
+**Layout Integration:**
+- Updated `src/app/(app)/layout.tsx` to include AssistantProvider and AssistantPanel
+- Updated `src/components/layout/sidebar.tsx` to add AI Assistant button
+
+**Settings Page (`src/app/(app)/settings/page.tsx`):**
+- Added AI Assistant Settings section
+- AI Instructions textarea (2000 char limit)
+- Default model selection (Opus/Sonnet)
+
+**Documentation Updates:**
+- Updated `AGENT.md` with V3.0 status and AI module info
+- Updated `progression.md` with new AI-focused roadmap
+- Updated `progression_report.md` with implementation details
+
+---
+
 ## Current Status
 
-**Version:** V2 (Complete)
+**Version:** V3.0 (Complete)
 
-**V2 Features Complete:**
-- Dashboard analytics with 11 charts
-- Time filtering (including Last Year, All Time)
-- Project filtering (multi-select)
-- Friction alerts on calendar
-- Focus timer with session tracking
-- All pre-V2 bug fixes
+**V3.0 Features Complete:**
+- Right sidebar AI assistant panel (desktop/mobile responsive)
+- Model selection (Opus default, Sonnet available)
+- Propose-approve flow for task modifications
+- On-demand reports (Daily Briefing, Weekly Review, Long-term Trends, Friction Analysis, Estimate Calibration)
+- User Instructions for persistent AI context
+- Conversation persistence with save/discard option
+- Activity logging for all AI-applied actions
 
-**Next:** V3.0 - Project Chat (Core Chatbot)
+**Technical Details:**
+- Uses Claude Opus for chat/analysis, Sonnet for brain dump
+- Context includes: tasks, projects, friction alerts, analytics snapshot, activity logs
+- Reports cached (1 hour for daily, 6 hours for others)
+- All AI actions logged with actor='ai_assistant'
+
+**Next:** V3.5 - AI Enhancements (Project Chat mode, conversation templates)
 
 ---
 
 ## Reference
-- Version roadmap: See `progression.md` (V3.0 = Project Chat, V3.5 = Chat Enhancements)
+- Version roadmap: See `progression.md` (V3.5 = AI Enhancements, V4 = Manager Assistant)
 - Bug tracking: See `KNOWN_ISSUES.md`
+- AI Plan: See `.claude/plans/scalable-finding-lemur.md`

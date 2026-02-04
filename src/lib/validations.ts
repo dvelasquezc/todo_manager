@@ -114,6 +114,49 @@ export const confirmBrainDumpSchema = z.object({
   })),
 })
 
+// AI Assistant validation schemas
+export const aiModelSchema = z.enum(['claude-opus-4-20250514', 'claude-sonnet-4-20250514'])
+export const reportTypeSchema = z.enum(['daily_briefing', 'weekly_review', 'long_term_trends', 'friction_analysis', 'estimate_calibration'])
+
+export const sendAssistantMessageSchema = z.object({
+  conversation_id: z.string().uuid().optional(),
+  message: z.string().min(1, 'Message is required').max(10000, 'Message too long'),
+  model: aiModelSchema.optional(),
+})
+
+export const generateReportSchema = z.object({
+  report_type: reportTypeSchema,
+  parameters: z.object({
+    weeks: z.number().min(1).max(52).optional(),
+    project_ids: z.array(z.string().uuid()).optional(),
+  }).optional(),
+})
+
+export const applyProposedActionSchema = z.object({
+  action_id: z.string().uuid('Invalid action'),
+})
+
+export const rejectProposedActionSchema = z.object({
+  action_id: z.string().uuid('Invalid action'),
+})
+
+export const updateConversationSchema = z.object({
+  conversation_id: z.string().uuid('Invalid conversation'),
+  title: z.string().min(1).max(100).optional(),
+  is_saved: z.boolean().optional(),
+  is_archived: z.boolean().optional(),
+})
+
+export const updateAIInstructionsSchema = z.object({
+  instructions: z.string().max(2000, 'Instructions too long (max 2000 characters)').nullable(),
+})
+
+export const updateAIPreferencesSchema = z.object({
+  default_model: aiModelSchema.optional(),
+  auto_save_conversations: z.boolean().optional(),
+  conversation_retention_days: z.number().min(1).max(365).optional(),
+})
+
 // Type exports
 export type CreateTaskInput = z.infer<typeof createTaskSchema>
 export type UpdateTaskInput = z.infer<typeof updateTaskSchema>
@@ -129,3 +172,10 @@ export type CreateManualFocusSessionInput = z.infer<typeof createManualFocusSess
 export type DeleteFocusSessionInput = z.infer<typeof deleteFocusSessionSchema>
 export type ParseBrainDumpInput = z.infer<typeof parseBrainDumpSchema>
 export type ConfirmBrainDumpInput = z.infer<typeof confirmBrainDumpSchema>
+export type SendAssistantMessageInput = z.infer<typeof sendAssistantMessageSchema>
+export type GenerateReportInput = z.infer<typeof generateReportSchema>
+export type ApplyProposedActionInput = z.infer<typeof applyProposedActionSchema>
+export type RejectProposedActionInput = z.infer<typeof rejectProposedActionSchema>
+export type UpdateConversationInput = z.infer<typeof updateConversationSchema>
+export type UpdateAIInstructionsInput = z.infer<typeof updateAIInstructionsSchema>
+export type UpdateAIPreferencesInput = z.infer<typeof updateAIPreferencesSchema>

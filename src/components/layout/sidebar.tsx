@@ -4,8 +4,9 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Inbox, Sun, Calendar, Archive, Settings, Plus, FolderKanban, Brain, BarChart3 } from 'lucide-react'
+import { Inbox, Sun, Calendar, Archive, Settings, Plus, FolderKanban, Brain, BarChart3, Bot } from 'lucide-react'
 import { BrainDumpModal } from '@/components/tasks/brain-dump-modal'
+import { useAssistant } from '@/components/ai-assistant'
 import { FocusTimerIndicator } from '@/components/tasks/focus-timer'
 import type { Project } from '@/types/database'
 
@@ -16,6 +17,7 @@ interface SidebarProps {
 export function Sidebar({ projects }: SidebarProps) {
   const pathname = usePathname()
   const [brainDumpOpen, setBrainDumpOpen] = useState(false)
+  const { toggle: toggleAssistant } = useAssistant()
 
   const navItems = [
     { href: '/inbox', label: 'Inbox', icon: Inbox },
@@ -42,13 +44,24 @@ export function Sidebar({ projects }: SidebarProps) {
         </div>
 
         {/* Brain Dump Button */}
-        <div className="px-2 mb-4">
+        <div className="px-2 mb-2">
           <button
             onClick={() => setBrainDumpOpen(true)}
             className="flex w-full items-center px-3 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md transition-colors hover:bg-primary/90"
           >
             <Brain className="mr-3 h-5 w-5" />
             Brain Dump
+          </button>
+        </div>
+
+        {/* AI Assistant Button */}
+        <div className="px-2 mb-4">
+          <button
+            onClick={toggleAssistant}
+            className="flex w-full items-center px-3 py-2 text-sm font-medium border border-primary text-primary rounded-md transition-colors hover:bg-primary/10"
+          >
+            <Bot className="mr-3 h-5 w-5" />
+            AI Assistant
           </button>
         </div>
 

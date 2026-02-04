@@ -69,33 +69,57 @@ Deliverable: "I understand how I spend time and where I'm stuck."
 
 ---
 
-## V3.0 — Project Chat (Core Chatbot)
-Goal: conversational planning per project, grounded in tasks.
+## V3.0 — AI Productivity Assistant (COMPLETE)
+Goal: AI-powered productivity assistant with full task data access.
 
-Add:
-- Project Chat Dashboard:
-  - Threads per project
-  - Persistent history
-  - Thread "Context Summary" (auto-refreshed)
-- Chat can read project tasks and propose actions:
-  - create/update/move/complete/split
-- UI shows proposed actions with Apply/Reject
-- Link chat messages to tasks created/edited from that chat
+Implemented:
+- **Right Sidebar AI Panel:**
+  - Collapsible panel on desktop (420px width)
+  - Full-screen modal on mobile
+  - Tabs: Chat | Reports | History
+- **Model Selection:**
+  - Claude Opus (default) - best for deep analysis
+  - Claude Sonnet - fast & efficient
+  - User-selectable per conversation
+- **Propose-Approve Flow:**
+  - AI suggests task changes (create/update/move/complete/delete)
+  - User reviews and applies/rejects each action
+  - All actions logged with actor='ai_assistant'
+- **On-Demand Reports:**
+  - Daily Briefing (priorities, friction alerts, quick wins)
+  - Weekly Review (accomplishments, patterns, estimate accuracy)
+  - Long-term Trends (4-8 week productivity analysis)
+  - Friction Analysis (stuck tasks, root causes)
+  - Estimate Calibration (estimation accuracy by project)
+- **User Instructions:**
+  - Persistent context the AI always knows
+  - Example: "I teach on Tuesdays so hours are lower that day"
+  - Editable in Settings page
+- **Context Management:**
+  - Conversation save/discard to avoid context bloat
+  - Automatic context summarization for long conversations
+- **Productivity Frameworks:**
+  - GTD (inbox zero, weekly reviews, next actions)
+  - Deep Work (focus time, context switching)
+  - Academic/Research (deadlines, teaching balance)
 
-Deliverable: "Each project has its own assistant with memory + safe task editing."
+Database: ai_conversations, ai_messages, ai_proposed_actions, ai_reports
+
+Deliverable: "I have an AI assistant that knows my tasks and helps me be more productive."
 
 ---
 
-## V3.5 — Chat Enhancements
-Goal: make project chat smarter and more convenient.
+## V3.5 — AI Enhancements
+Goal: smarter AI with project-specific context.
 
 Add:
+- **Project Chat Mode:** Open AI from project page → scoped to that project
 - **Recent activity auto-injected** (last 5 task changes)
 - **Conversation templates:** "Break this down", "What should I deprioritize?"
 - Brain dump via chat: "Add these tasks: [list]"
 - Improved context awareness
 
-Deliverable: "Chat anticipates needs and offers shortcuts."
+Deliverable: "AI anticipates needs and offers shortcuts."
 
 ---
 
