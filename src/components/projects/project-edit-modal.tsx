@@ -13,7 +13,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { updateProject, deleteProject } from '@/actions/projects'
-import { Trash2, Loader2 } from 'lucide-react'
+import { Trash2, Loader2, Star } from 'lucide-react'
 import type { Project } from '@/types/database'
 
 interface ProjectEditModalProps {
@@ -51,12 +51,14 @@ export function ProjectEditModal({ project, open, onClose }: ProjectEditModalPro
   const [name, setName] = useState(project.name)
   const [description, setDescription] = useState(project.description || '')
   const [color, setColor] = useState(project.color)
+  const [isFocused, setIsFocused] = useState(project.is_focused ?? false)
 
   // Reset form when project changes
   useEffect(() => {
     setName(project.name)
     setDescription(project.description || '')
     setColor(project.color)
+    setIsFocused(project.is_focused ?? false)
   }, [project])
 
   const handleSave = async () => {
@@ -67,10 +69,12 @@ export function ProjectEditModal({ project, open, onClose }: ProjectEditModalPro
       name: name.trim(),
       description: description.trim() || null,
       color,
+      is_focused: isFocused,
     })
     setSaving(false)
 
     if (!result.error) {
+      router.refresh()
       onClose()
     }
   }
@@ -147,6 +151,23 @@ export function ProjectEditModal({ project, open, onClose }: ProjectEditModalPro
                 />
               ))}
             </div>
+          </div>
+
+          {/* Focus toggle */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Focus</label>
+            <button
+              type="button"
+              onClick={() => setIsFocused(!isFocused)}
+              className="flex items-center gap-2 text-sm"
+            >
+              <Star
+                className={`w-5 h-5 ${isFocused ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground'}`}
+              />
+              <span className="text-muted-foreground">
+                {isFocused ? 'Focused for upcoming weeks' : 'Mark as focus project'}
+              </span>
+            </button>
           </div>
         </div>
 

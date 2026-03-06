@@ -34,6 +34,7 @@ export interface Project {
   icon: string | null
   is_system: boolean
   is_archived: boolean
+  is_focused: boolean
   sort_order: number
   created_at: string
   updated_at: string

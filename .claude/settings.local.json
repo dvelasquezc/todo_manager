@@ -42,7 +42,8 @@
       "Bash(Get-Content \"C:\\\\Users\\\\danielvc\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-DVelasquez-Dropbox-apps-todolistmanager\\\\tasks\\\\b9adebd.output\" -Tail 50)",
       "Bash(npm run build:*)",
       "Bash(curl:*)",
-      "Bash(dir /B \"C:\\\\Users\\\\DVelasquez\\\\Dropbox\\\\apps\\\\todolistmanager\\\\src\")"
+      "Bash(dir /B \"C:\\\\Users\\\\DVelasquez\\\\Dropbox\\\\apps\\\\todolistmanager\\\\src\")",
+      "Bash(supabase --version:*)"
     ]
   }
 }

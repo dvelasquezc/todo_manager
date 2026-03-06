@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Inbox, Sun, Calendar, Archive, Settings, Plus, FolderKanban, Brain, BarChart3, Bot, ArrowRight, Clock, Ban, CloudSun, ChevronRight, ChevronDown } from 'lucide-react'
+import { Inbox, Sun, Calendar, Archive, Settings, Plus, FolderKanban, Brain, BarChart3, Bot, ArrowRight, Clock, Ban, CloudSun, ChevronRight, ChevronDown, Star } from 'lucide-react'
 import { BrainDumpModal } from '@/components/tasks/brain-dump-modal'
 import { useAssistant } from '@/components/ai-assistant'
 import { FocusTimerIndicator } from '@/components/tasks/focus-timer'
@@ -175,7 +175,10 @@ export function Sidebar({ projects }: SidebarProps) {
                       className="mr-3 h-3 w-3 rounded-full"
                       style={{ backgroundColor: project.color }}
                     />
-                    {project.name}
+                    <span className="flex-1">{project.name}</span>
+                    {project.is_focused && (
+                      <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
+                    )}
                   </Link>
                 )
               })}
@@ -207,7 +210,10 @@ export function Sidebar({ projects }: SidebarProps) {
                         className="mr-3 h-3 w-3 rounded-full"
                         style={{ backgroundColor: project.color }}
                       />
-                      {project.name}
+                      <span className="flex-1">{project.name}</span>
+                      {project.is_focused && (
+                        <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
+                      )}
                     </Link>
                   )
                 })}

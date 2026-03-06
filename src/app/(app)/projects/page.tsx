@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, FolderKanban } from 'lucide-react'
+import { Plus, FolderKanban, Star } from 'lucide-react'
 
 export default async function ProjectsPage() {
   const supabase = await createClient()
@@ -37,7 +37,10 @@ export default async function ProjectsPage() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {systemProjects.map((project) => (
             <Link key={project.id} href={`/projects/${project.slug}`}>
-              <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+              <Card className="hover:shadow-md transition-shadow cursor-pointer h-full relative">
+                {project.is_focused && (
+                  <Star className="absolute top-2 right-2 w-4 h-4 text-amber-400 fill-amber-400" />
+                )}
                 <CardHeader>
                   <div className="flex items-center gap-2">
                     <div
@@ -63,7 +66,10 @@ export default async function ProjectsPage() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {customProjects.map((project) => (
               <Link key={project.id} href={`/projects/${project.slug}`}>
-                <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+                <Card className="hover:shadow-md transition-shadow cursor-pointer h-full relative">
+                  {project.is_focused && (
+                    <Star className="absolute top-2 right-2 w-4 h-4 text-amber-400 fill-amber-400" />
+                  )}
                   <CardHeader>
                     <div className="flex items-center gap-2">
                       <div

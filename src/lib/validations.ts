@@ -50,6 +50,7 @@ export const updateProjectSchema = z.object({
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   icon: z.string().max(10).optional().nullable(),
   is_archived: z.boolean().optional(),
+  is_focused: z.boolean().optional(),
 })
 
 // Auth validation schemas
