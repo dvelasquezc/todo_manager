@@ -4,13 +4,78 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { sendMessage, generateReportContent } from '@/lib/ai/assistant'
 import { buildContext } from '@/lib/ai/context/builder'
+import { getCachedContext, setCachedContext } from '@/lib/ai/context/cache'
 import {
   sendAssistantMessageSchema,
   generateReportSchema,
   type SendAssistantMessageInput,
   type GenerateReportInput
 } from '@/lib/validations'
-import type { AIModel, AIMessage, AIConversation, AIReport, AIProposedAction } from '@/types/ai'
+import type { AIModel, AIMessage, AIConversation, AIReport, AIProposedAction, ContextTier, AIContext, ContextInfo, ReportType } from '@/types/ai'
+
+/**
+ * Detect the appropriate context tier based on message content.
+ * Max tier for historical analysis, Full for reports, Standard for task questions, Light for casual chat.
+ */
+function detectContextTier(message: string): ContextTier {
+  const lower = message.toLowerCase()
+
+  // Tier 4 (max): Complete history and long-term analysis keywords
+  const maxKeywords = [
+    'load max context', 'all data', 'complete history', 'all time',
+    'annual review', 'year in review', 'historical', 'all my completed',
+    'entire history', 'everything', 'all tasks ever', 'lifetime'
+  ]
+  if (maxKeywords.some(k => lower.includes(k))) {
+    return 'max'
+  }
+
+  // Tier 3 (full): Analysis and report keywords (14 days, limited)
+  const fullKeywords = [
+    'report', 'weekly review', 'daily briefing', 'gtd', 'analysis', 'estimate accuracy',
+    'trend', 'statistics', 'how accurate', 'calibration', 'friction', 'long term',
+    'all my', 'complete list', 'export', 'full data', 'load full context', 'more data',
+    'activity log', 'focus session', 'time tracking', 'productivity', 'deep work'
+  ]
+  if (fullKeywords.some(k => lower.includes(k))) {
+    return 'full'
+  }
+
+  // Tier 2 (standard): Task-specific keywords
+  const standardKeywords = [
+    'task', 'project', 'today', 'focus', 'status', 'what should', 'priority',
+    'due', 'stuck', 'blocked', 'overdue', 'hours', 'estimate', 'complete',
+    'inbox', 'next', 'waiting', 'someday'
+  ]
+  if (standardKeywords.some(k => lower.includes(k))) {
+    return 'standard'
+  }
+
+  // Tier 1 (light): Default for casual questions
+  return 'light'
+}
+
+/**
+ * Detect the appropriate context tier for a report type.
+ * Analysis reports that need historical patterns use 'max' tier, others use 'full'.
+ */
+function detectReportTier(reportType: ReportType): ContextTier {
+  // Reports that need complete historical data for pattern analysis
+  const maxTierReports: ReportType[] = [
+    'long_term_trends',
+    'estimate_calibration',
+    'today_success_rate',      // Needs activity log history
+    'productive_hours_map',    // Needs focus session history
+    'procrastination_analysis' // Needs full task history
+  ]
+
+  if (maxTierReports.includes(reportType)) {
+    return 'max'
+  }
+
+  // Default to 'full' for recent data reports (daily_briefing, weekly_review, friction_analysis)
+  return 'full'
+}
 
 /**
  * Send a message to the AI assistant and get a response.
@@ -21,6 +86,7 @@ export async function sendAssistantMessage(input: SendAssistantMessageInput): Pr
     conversation_id: string
     message: AIMessage
     proposed_actions?: AIProposedAction[]
+    context_info?: ContextInfo
   }
   error?: string
 }> {
@@ -96,8 +162,36 @@ export async function sendAssistantMessage(input: SendAssistantMessageInput): Pr
     return { error: msgError.message }
   }
 
-  // Build context
-  const context = await buildContext(conversationId)
+  // Detect context tier from message content
+  let tier = detectContextTier(message)
+
+  // Check for explicit user requests to load more/refresh data
+  const lowerMessage = message.toLowerCase()
+  const forceRefresh = lowerMessage.includes('refresh context') ||
+                       lowerMessage.includes('reload context') ||
+                       lowerMessage.includes('update context')
+
+  // Allow explicit tier upgrades
+  if (lowerMessage.includes('load max context') || lowerMessage.includes('max data')) {
+    tier = 'max'
+  } else if (lowerMessage.includes('load full context') || lowerMessage.includes('full data')) {
+    tier = 'full'
+  }
+
+  // Try cache first (unless forcing refresh)
+  let context: AIContext | null = null
+  let isCached = false
+
+  if (!forceRefresh) {
+    context = await getCachedContext(user.id, tier)
+    isCached = context !== null
+  }
+
+  if (!context) {
+    // Cache miss or forced refresh - build fresh context
+    context = await buildContext(conversationId, tier)
+    await setCachedContext(user.id, context)
+  }
 
   // Get conversation history
   const { data: history } = await supabase
@@ -189,6 +283,13 @@ export async function sendAssistantMessage(input: SendAssistantMessageInput): Pr
       conversation_id: conversationId,
       message: assistantMessage as AIMessage,
       proposed_actions: savedActions.length > 0 ? savedActions : undefined,
+      context_info: {
+        tier: context.tier,
+        tier_description: context.tier_description,
+        loaded_at: context.loaded_at,
+        data_summary: context.data_summary,
+        is_cached: isCached,
+      },
     }
   }
 }
@@ -232,8 +333,15 @@ export async function generateReport(input: GenerateReportInput): Promise<{
     return { data: cached as AIReport }
   }
 
-  // Build context and generate report
-  const context = await buildContext()
+  // Detect tier based on report type (long_term_trends and estimate_calibration need 'max')
+  const tier = detectReportTier(report_type)
+
+  // Build context with appropriate tier
+  let context = await getCachedContext(user.id, tier)
+  if (!context) {
+    context = await buildContext(undefined, tier)
+    await setCachedContext(user.id, context)
+  }
 
   const report = await generateReportContent({
     reportType: report_type,

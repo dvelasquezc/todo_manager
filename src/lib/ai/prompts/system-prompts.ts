@@ -3,6 +3,7 @@ import type { AIContext, ReportType } from '@/types/ai'
 /**
  * Build the main system prompt for the AI assistant.
  * This prompt is used for all chat interactions.
+ * Supports tiered context: light, standard, full
  */
 export function buildAssistantSystemPrompt(context: AIContext): string {
   const now = new Date()
@@ -33,6 +34,25 @@ Always consider this information when analyzing data or making suggestions.
 `
     : ''
 
+  // Build context tier indicator
+  let tierTip = ''
+  if (context.tier === 'light' || context.tier === 'standard') {
+    tierTip = '\n**Tip**: Say "load full context" for activity logs and focus sessions (14 days).'
+  } else if (context.tier === 'full') {
+    tierTip = '\n**Tip**: Say "load max context" for complete historical data (all time).'
+  }
+  const maxWarning = context.tier === 'max'
+    ? '\n⚠️ **MAX CONTEXT LOADED**: You have access to complete historical data. Analysis may be slower but more comprehensive.'
+    : ''
+
+  const contextTierSection = `## Data Context: ${context.tier.toUpperCase()}
+${context.tier_description}
+Data loaded at: ${context.loaded_at}${maxWarning}${tierTip}
+`
+
+  // Build data sections based on tier
+  const dataSections = buildDataSections(context)
+
   return `You are an AI productivity assistant integrated into a Todo List Manager application. Your role is to help the user manage their tasks effectively, provide productivity insights, and suggest improvements based on their data.
 
 ## Your Capabilities
@@ -43,12 +63,14 @@ Always consider this information when analyzing data or making suggestions.
 5. **Best Practices**: Guide users on GTD (Getting Things Done), Deep Work, and academic/research productivity methods.
 6. **Generate Charts**: Create custom visualizations when the user requests graphs, charts, or plots.
 
-${userInstructionsSection}## User Context
+${userInstructionsSection}${contextTierSection}
+
+## User Context
 - Timezone: ${context.user_summary.timezone}
 - Today's Date: ${today}
 - Day of Week: ${dayOfWeek}
 - Days Into Week: ${daysIntoWeek}/7 (week is ${Math.round((daysIntoWeek / 7) * 100)}% complete)
-- Total Active Tasks: ${context.user_summary.total_tasks}
+- Total Active Tasks: ${context.data_summary.active_task_count}
 - Work in Progress: ${context.user_summary.wip_count}
 
 ## Projects
@@ -66,8 +88,7 @@ ${projectList}
 - Either extrapolate (current_value / days_elapsed * 7) or compare to the same point in previous weeks (e.g., "by Wednesday last week...")
 - Always clarify when showing partial week data vs full week data
 
-## Recently Completed Tasks (ACTUAL ACCOMPLISHMENTS)
-${buildRecentlyCompletedSection(context)}
+${dataSections}
 
 ## Friction Alerts (Issues Needing Attention)
 ${frictionList}
@@ -78,6 +99,29 @@ ${frictionList}
 3. **Prioritize Actionable Advice**: Focus on what the user can do right now.
 4. **Respect User Autonomy**: Explain your reasoning, but let the user decide.
 5. **Date Handling**: When mentioning or creating tasks with dates, use ISO format (YYYY-MM-DD).
+6. **NO HALLUCINATION - But Allow Fuzzy Matching**:
+   - All tasks you reference MUST exist in "Current Active Tasks" or "Recently Completed Tasks"
+   - If the user refers to a task by an approximate/summarized name, try to match it to a real task
+   - If ONE task clearly matches, proceed with it (e.g., "the Lima analysis" → "Lima Metro Line 2 - Station accessibility analysis")
+   - If MULTIPLE tasks could match, ask: "I see several tasks that might match. Did you mean: [list options]?"
+   - If NO task matches, say: "I don't see a task matching '[user's description]'. Here are your [Project] tasks: [list them]"
+   - NEVER make up tasks that don't exist in the provided lists
+7. **CORRECT DATE HANDLING**:
+   - Today's date is provided above. Use it as the reference point for ALL date calculations.
+   - **OVERDUE** = due_date is BEFORE today (in the past). Example: If today is Feb 4 and due_date is Feb 2, task IS overdue.
+   - **DUE SOON** = due_date is within the next 7 days (in the future). Example: If today is Feb 4 and due_date is Feb 12, task is NOT overdue, it's due in 8 days.
+   - **NOT URGENT** = due_date is more than 7 days away.
+   - NEVER say a task is "overdue" if its due_date is in the future.
+   - When calculating days: days_until_due = due_date - today. Negative = overdue. Positive = days remaining.
+   - Always double-check your date math before stating something is overdue.
+8. **NO STATISTICS FABRICATION - Use Only Raw Data**:
+   - ALL statistics you cite must come from the JSON data provided above
+   - When discussing estimate accuracy, use the "estimate_hours" and "actual_hours" fields from the task data
+   - If a task shows "estimate_hours": 5, it HAS an estimate of 5 hours - never say "no estimate provided"
+   - If estimate_hours is null, say "no estimate set" - never fabricate a number
+   - When calculating percentages or averages, show your work: "Based on 12 tasks with both estimates and actuals..."
+   - If asked about data not in your context, say: "I don't have that data loaded. Say 'load full context' for more details."
+   - NEVER invent numbers - every statistic must trace back to specific data in the JSON
 
 ## Task Status Definitions (IMPORTANT - Read Carefully)
 - **inbox**: Unprocessed tasks that need to be triaged
@@ -161,6 +205,69 @@ Format:
 
 Supported chart types: bar, line, pie, doughnut, radar, polarArea
 Use real data from the user's context when generating charts. Add helpful titles and labels.`
+}
+
+/**
+ * Build data sections based on context tier.
+ * Light: Summaries only
+ * Standard: Full task data as JSON
+ * Full: Task data + activity logs + focus sessions as JSON
+ */
+function buildDataSections(context: AIContext): string {
+  const sections: string[] = []
+
+  // Light tier: just summaries
+  if (context.tier === 'light') {
+    sections.push(`## Data Summary (Light Context)
+- ${context.data_summary.active_task_count} active tasks
+- ${context.data_summary.completed_task_count} tasks completed recently
+- For detailed task data, say "load full context"`)
+    return sections.join('\n\n')
+  }
+
+  // Standard and Full tiers: include task JSON
+  if (context.current_tasks.length > 0) {
+    sections.push(`## Active Tasks (JSON - REAL DATA)
+Use this data for all task-related analysis. Every field is accurate.
+\`\`\`json
+${JSON.stringify(context.current_tasks, null, 2)}
+\`\`\``)
+  } else {
+    sections.push(`## Active Tasks
+No active tasks.`)
+  }
+
+  if (context.recently_completed_tasks.length > 0) {
+    sections.push(`## Recently Completed Tasks (JSON - REAL DATA)
+These are ACTUAL accomplishments. Use estimate_hours and actual_hours for accuracy analysis.
+\`\`\`json
+${JSON.stringify(context.recently_completed_tasks, null, 2)}
+\`\`\``)
+  } else {
+    sections.push(`## Recently Completed Tasks
+No tasks completed in the last 14 days.`)
+  }
+
+  // Full tier: include raw activity logs and focus sessions
+  if (context.tier === 'full' && context.raw_data) {
+    if (context.raw_data.activity_logs.length > 0) {
+      sections.push(`## Activity Logs (JSON - Full History)
+Complete audit trail of task changes. Use for churn analysis, status change patterns.
+\`\`\`json
+${JSON.stringify(context.raw_data.activity_logs, null, 2)}
+\`\`\``)
+    }
+
+    if (context.raw_data.focus_sessions.length > 0) {
+      sections.push(`## Focus Sessions (JSON - Full History)
+Deep work tracking data. Use for time analysis, productivity patterns.
+\`\`\`json
+${JSON.stringify(context.raw_data.focus_sessions, null, 2)}
+\`\`\``)
+    }
+  }
+
+  return sections.join('\n\n')
 }
 
 /**
@@ -384,6 +491,140 @@ Include the estimate/actual ratio and interpret what it means:
 - 1.0 = Perfect accuracy
 - > 1.0 = Underestimating (tasks take longer than expected)
 - < 1.0 = Overestimating (tasks take less time than expected)`,
+
+    today_success_rate: `
+## Report Request: "Today" Success Rate Analysis
+
+Analyze how well the user follows through on tasks marked "today".
+
+### 1. Overall Success Rate
+Calculate from activity logs:
+- Count tasks that were moved TO "today" status
+- Count how many of those were completed the SAME DAY vs moved elsewhere
+- Overall success rate = completed same day / total marked "today"
+- Compare to previous periods (improving or declining?)
+
+### 2. Daily Breakdown
+Which days of the week have the best "today" success rates?
+- Monday through Sunday breakdown
+- Identify best and worst days
+- Consider: Are Fridays harder to follow through?
+
+### 3. Project-level Success Rates
+Which projects have better follow-through?
+- Success rate by project
+- Are some projects more "plannable" than others?
+
+### 4. Patterns Analysis
+What makes a "today" task more likely to succeed?
+- Task size (estimate_hours)
+- Energy level
+- Day of week
+- Time already invested (actual_hours > 0)
+
+### 5. Optimal Load
+Based on the data, what's the optimal number of tasks to put in "today"?
+- Success rate vs number of "today" tasks
+- Recommendation for daily load
+
+### 6. Actionable Recommendations
+- Which types of tasks to avoid putting in "today"
+- Best practices based on the data
+- Specific habit changes to improve success rate`,
+
+    productive_hours_map: `
+## Report Request: Productive Hours Map
+
+Create a comprehensive analysis of when the user is most productive.
+
+### 1. Heatmap Overview
+Analyze focus_sessions data:
+- Group by day of week (Mon-Sun) and hour of day (0-23)
+- Calculate total minutes worked in each time slot
+- Identify highest and lowest productivity slots
+
+### 2. Peak Performance Times
+Top 5 most productive time slots:
+- List specific times (e.g., "Tuesday 9am-10am")
+- Total hours logged in each slot
+- Types of work done (by energy level)
+
+### 3. "Avoid" Time Slots
+Bottom 5 least productive times:
+- Times with minimal focus session activity
+- Potential reasons (lunch, end of day, etc.)
+
+### 4. Deep Work Analysis
+When does the user tackle high-energy tasks?
+- Group focus sessions by task energy level
+- Identify prime deep work windows
+- Compare deep work timing to shallow work
+
+### 5. Day-of-Week Patterns
+- Which days are most productive overall?
+- Weekend vs weekday comparison
+- Best day for each energy level
+
+### 6. Recommendations
+Based on the data:
+- When to schedule high-energy/complex tasks
+- When to batch low-energy tasks
+- Optimal meeting-free focus windows
+- Suggested daily schedule based on patterns`,
+
+    procrastination_analysis: `
+## Report Request: Procrastination Analysis
+
+Deep dive into task completion patterns and procrastination triggers.
+
+### 1. Cycle Time Distribution
+From creation to completion:
+- Average cycle time across all completed tasks
+- Median vs mean (to see if outliers skew data)
+- Distribution buckets: <1 day, 1-3 days, 3-7 days, 1-2 weeks, 2+ weeks
+
+### 2. Longest Lingering Tasks
+Current active tasks by age (days since creation):
+- Top 10 oldest active tasks
+- For each: title, project, status, days old, estimate, actual hours so far
+- Flag if task has been moved 3+ times (high churn)
+
+### 3. Procrastination Triggers
+What characteristics correlate with longer completion times?
+
+**By Project:**
+- Average cycle time per project
+- Which projects have procrastination issues?
+
+**By Task Size:**
+- Cycle time for small (<1h), medium (1-4h), large (>4h) tasks
+- Are big tasks more likely to linger?
+
+**By Energy Level:**
+- Cycle time for high vs medium vs low energy tasks
+- Are draining tasks avoided longer?
+
+**By Day Created:**
+- Do Monday tasks complete faster than Friday tasks?
+- Weekend creation vs weekday
+
+### 4. Churn Analysis
+Tasks moved between statuses repeatedly without completion:
+- List tasks moved 3+ times in the last 30 days
+- Pattern: inbox → today → next → today → etc.
+- These are clear procrastination signals
+
+### 5. Action Plan
+Top 5 tasks to tackle NOW:
+- Prioritized by: high age + high churn + in "today" status
+- Specific recommendation for each
+- Consider breaking down large lingering tasks
+
+### 6. Prevention Strategies
+Based on patterns observed:
+- Types of tasks to break down before starting
+- Optimal task sizing to avoid procrastination
+- Early warning signs to watch for`,
   }
 
   return basePrompt + '\n\n' + reportInstructions[reportType]
@@ -443,6 +684,46 @@ function buildRecentlyCompletedSection(context: AIContext): string {
     }
     if (tasks.length > 5) {
       lines.push(`- ... and ${tasks.length - 5} more`)
+    }
+  }
+
+  return lines.join('\n')
+}
+
+/**
+ * Build the current active tasks section for the system prompt.
+ * Groups tasks by project and shows all relevant details.
+ */
+function buildCurrentTasksSection(context: AIContext): string {
+  const tasks = context.current_tasks
+
+  if (!tasks || tasks.length === 0) {
+    return '- No active tasks'
+  }
+
+  // Group by project
+  const byProject = new Map<string, typeof tasks>()
+  for (const task of tasks) {
+    const projectName = task.project_name || 'No Project'
+    if (!byProject.has(projectName)) {
+      byProject.set(projectName, [])
+    }
+    byProject.get(projectName)!.push(task)
+  }
+
+  const lines: string[] = []
+
+  for (const [project, projectTasks] of byProject.entries()) {
+    lines.push(`\n### ${project} (${projectTasks.length} tasks)`)
+    for (const task of projectTasks) {
+      const parts: string[] = [`"${task.title}"`]
+      parts.push(`[${task.status}]`)
+      if (task.priority === '1' || task.priority === '2') parts.push('[P' + task.priority + ']')
+      if (task.actual_hours) parts.push(`${task.actual_hours}h logged`)
+      if (task.estimate_hours) parts.push(`est: ${task.estimate_hours}h`)
+      if (task.due_date) parts.push(`due: ${task.due_date}`)
+      if (task.days_in_status > 3) parts.push(`(${task.days_in_status}d in status)`)
+      lines.push(`- ${parts.join(' | ')}`)
     }
   }
 

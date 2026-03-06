@@ -116,7 +116,7 @@ export const confirmBrainDumpSchema = z.object({
 
 // AI Assistant validation schemas
 export const aiModelSchema = z.enum(['claude-opus-4-20250514', 'claude-sonnet-4-20250514'])
-export const reportTypeSchema = z.enum(['daily_briefing', 'weekly_review', 'long_term_trends', 'friction_analysis', 'estimate_calibration'])
+export const reportTypeSchema = z.enum(['daily_briefing', 'weekly_review', 'long_term_trends', 'friction_analysis', 'estimate_calibration', 'today_success_rate', 'productive_hours_map', 'procrastination_analysis'])
 
 export const sendAssistantMessageSchema = z.object({
   conversation_id: z.string().uuid().optional(),

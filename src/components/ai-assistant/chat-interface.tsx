@@ -9,7 +9,7 @@ import { ProposedActionCard } from './proposed-action-card'
 import { sendAssistantMessage, getConversationMessages } from '@/actions/ai-assistant'
 import { getPendingActions } from '@/actions/ai-proposed-actions'
 import { useAssistant } from './assistant-provider'
-import type { AIModel, AIMessage, AIProposedAction } from '@/types/ai'
+import type { AIModel, AIMessage, AIProposedAction, ContextInfo } from '@/types/ai'
 
 interface ChatInterfaceProps {
   conversationId?: string
@@ -23,6 +23,7 @@ export function ChatInterface({ conversationId, model }: ChatInterfaceProps) {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [currentConversationId, setCurrentConversationId] = useState(conversationId)
+  const [contextInfo, setContextInfo] = useState<ContextInfo | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -131,6 +132,11 @@ export function ChatInterface({ conversationId, model }: ChatInterfaceProps) {
       if (data.proposed_actions && data.proposed_actions.length > 0) {
         setPendingActions(prev => [...prev, ...data.proposed_actions!])
       }
+
+      // Update context info
+      if (data.context_info) {
+        setContextInfo(data.context_info)
+      }
     }
 
     setIsLoading(false)
@@ -194,6 +200,35 @@ export function ChatInterface({ conversationId, model }: ChatInterfaceProps) {
 
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Context Info Bar */}
+      {contextInfo && (
+        <div className="px-4 py-2 text-xs text-muted-foreground flex items-center gap-2 border-t bg-muted/30">
+          <span className={`font-medium px-1.5 py-0.5 rounded ${
+            contextInfo.tier === 'max' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+            contextInfo.tier === 'full' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+            contextInfo.tier === 'standard' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+            'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
+          }`}>
+            {contextInfo.tier.toUpperCase()}
+          </span>
+          <span>•</span>
+          <span>{contextInfo.data_summary.active_task_count} tasks</span>
+          {contextInfo.data_summary.activity_log_count > 0 && (
+            <>
+              <span>•</span>
+              <span>{contextInfo.data_summary.activity_log_count} logs</span>
+            </>
+          )}
+          <span>•</span>
+          <span className={contextInfo.is_cached ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'}>
+            {contextInfo.is_cached ? 'cached' : 'fresh'}
+          </span>
+          <span className="ml-auto text-muted-foreground/70">
+            {contextInfo.tier !== 'max' && 'Say "load max context" for full history'}
+          </span>
+        </div>
+      )}
 
       {/* Input Area */}
       <div className="p-4 border-t">

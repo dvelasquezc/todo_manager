@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createTaskSchema, updateTaskSchema, completeTaskSchema } from '@/lib/validations'
 import type { CreateTaskInput, UpdateTaskInput, CompleteTaskInput } from '@/lib/validations'
 import type { Task, TaskStatus } from '@/types/database'
+import { invalidateCache } from '@/lib/ai/context/cache'
 
 // Helper to revalidate task-related paths (more targeted than full layout)
 function revalidateTaskPaths() {
@@ -144,6 +145,9 @@ export async function createTask(input: CreateTaskInput) {
   // Log activity
   await logActivity(supabase, user.id, data.id, project_id, 'create')
 
+  // Invalidate AI context cache since tasks changed
+  await invalidateCache(user.id)
+
   revalidateTaskPaths()
   return { data }
 }
@@ -220,6 +224,11 @@ export async function updateTask(id: string, input: UpdateTaskInput) {
     await logActivity(supabase, user.id, id, data.project_id, 'update', changes)
   }
 
+  // Invalidate AI context cache if status changed (affects task categorization)
+  if (validated.data.status && validated.data.status !== oldTask.status) {
+    await invalidateCache(user.id)
+  }
+
   revalidateTaskPaths()
   return { data }
 }
@@ -285,6 +294,9 @@ export async function moveTask(id: string, newStatus: TaskStatus) {
     status: { old: oldStatus, new: newStatus }
   })
 
+  // Invalidate AI context cache since task status changed
+  await invalidateCache(user.id)
+
   revalidateTaskPaths()
   return { data }
 }
@@ -337,6 +349,9 @@ export async function completeTask(id: string, input?: CompleteTaskInput) {
   await logActivity(supabase, user.id, id, data.project_id, 'complete', {
     status: { old: oldTask.status, new: 'done' }
   })
+
+  // Invalidate AI context cache since tasks changed
+  await invalidateCache(user.id)
 
   revalidateTaskPaths()
   return { data }

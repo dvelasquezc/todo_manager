@@ -9,6 +9,7 @@ import {
   createManualFocusSessionSchema,
   deleteFocusSessionSchema,
 } from '@/lib/validations'
+import { invalidateCache } from '@/lib/ai/context/cache'
 
 // Helper to revalidate focus-related paths (more targeted than full layout)
 function revalidateFocusPaths() {
@@ -145,6 +146,9 @@ export async function endFocusSession(input: EndFocusSessionInput) {
       .update({ actual_hours: Math.round(newHours * 100) / 100 })
       .eq('id', session.task_id)
   }
+
+  // Invalidate AI context cache since focus session ended (actual_hours changed)
+  await invalidateCache(user.id)
 
   revalidateFocusPaths()
   return { data }
@@ -364,6 +368,9 @@ export async function createManualFocusSession(input: CreateManualFocusSessionIn
   // Recalculate task's actual_hours
   await recalculateTaskActualHours(supabase, validated.data.task_id)
 
+  // Invalidate AI context cache since focus session added
+  await invalidateCache(user.id)
+
   revalidateFocusPaths()
   return { data }
 }
@@ -411,6 +418,9 @@ export async function deleteFocusSession(input: DeleteFocusSessionInput) {
 
   // Recalculate task's actual_hours
   await recalculateTaskActualHours(supabase, taskId)
+
+  // Invalidate AI context cache since focus session deleted
+  await invalidateCache(user.id)
 
   revalidateFocusPaths()
   return { success: true }

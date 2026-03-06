@@ -158,6 +158,17 @@ function getAnalyticsStartDate(weeks: number): Date | null {
   return startDate
 }
 
+// Helper to get week-aligned start date for weekly charts
+// Expands the start date to the beginning of that week (Sunday) to ensure
+// complete weeks are shown in weekly aggregation charts
+function getWeekAlignedStartDate(weeks: number): Date | null {
+  const startDate = getAnalyticsStartDate(weeks)
+  if (!startDate) return null
+
+  // Align to start of week (Sunday)
+  return getWeekStart(startDate)
+}
+
 // Generate all dates from startDate to endDate as "YYYY-MM-DD" in user's timezone
 function generateLocalDateRange(startDate: Date | null, endDate: Date, timezone: string): string[] {
   if (!startDate) return []
@@ -281,8 +292,8 @@ export async function getHoursByProjectWeekly(weeks: number = 8, projectIds?: st
     return { error: 'Not authenticated', data: null }
   }
 
-  // Calculate start date (N weeks ago), null for all time
-  const startDate = getAnalyticsStartDate(weeks)
+  // Calculate start date aligned to week boundary for fair week-to-week comparison
+  const startDate = getWeekAlignedStartDate(weeks)
   const startDateISO = startDate?.toISOString()
 
   // Get projects for color mapping
@@ -429,7 +440,8 @@ export async function getDeepWorkTrend(weeks: number = 8, projectIds?: string[])
     return { error: 'Not authenticated', data: null }
   }
 
-  const startDate = getAnalyticsStartDate(weeks)
+  // Use week-aligned start date for fair week-to-week comparison
+  const startDate = getWeekAlignedStartDate(weeks)
   const startDateISO = startDate?.toISOString()
 
   // Get focus sessions with task energy level and project
@@ -592,7 +604,8 @@ export async function getPlannedVsActualTrend(weeks: number = 8, projectIds?: st
     return { error: 'Not authenticated', data: null }
   }
 
-  const startDate = getAnalyticsStartDate(weeks)
+  // Use week-aligned start date for fair week-to-week comparison
+  const startDate = getWeekAlignedStartDate(weeks)
   const startDateISO = startDate?.toISOString()
 
   // Get completed tasks with both estimate and actual hours

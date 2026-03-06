@@ -1,13 +1,20 @@
-// AI Assistant Types - V3.0
+// AI Assistant Types - V3.1 (Smart Context Loading)
 
 import type { TaskStatus, TaskPriority, EnergyLevel } from './database'
+
+// Context tier for smart data loading
+// - light: summaries only (~500 tokens)
+// - standard: + active tasks (~2000 tokens)
+// - full: + activity logs, focus sessions, 14 days (~5000 tokens)
+// - max: ALL historical data, no limits (10k-100k+ tokens)
+export type ContextTier = 'light' | 'standard' | 'full' | 'max'
 
 // Enums matching database
 export type AIModel = 'claude-opus-4-20250514' | 'claude-sonnet-4-20250514'
 export type MessageRole = 'user' | 'assistant' | 'system'
 export type ActionStatus = 'pending' | 'approved' | 'rejected' | 'expired'
 export type ActionType = 'create_task' | 'update_task' | 'move_task' | 'complete_task' | 'delete_task' | 'create_project'
-export type ReportType = 'daily_briefing' | 'weekly_review' | 'long_term_trends' | 'friction_analysis' | 'estimate_calibration'
+export type ReportType = 'daily_briefing' | 'weekly_review' | 'long_term_trends' | 'friction_analysis' | 'estimate_calibration' | 'today_success_rate' | 'productive_hours_map' | 'procrastination_analysis'
 
 // Database table types
 export interface AIConversation {
@@ -109,14 +116,71 @@ export interface AIPreferences {
 
 // Context types for building AI context
 export interface AIContext {
+  // Tier info
+  tier: ContextTier
+  tier_description: string
+  data_summary: DataSummary
+  loaded_at: string // ISO timestamp
+
+  // User info
   user_summary: UserSummary
   user_instructions: string | null
+
+  // Tier 2+: Task data
   current_tasks: TaskSummary[]
   recently_completed_tasks: CompletedTaskSummary[]
+
+  // Always included
   friction_alerts: FrictionAlertSummary[]
-  recent_activity: ActivitySummary[]
+  recent_activity: ActivitySummary[] // Simple summary for light/standard
   analytics_snapshot: AnalyticsSnapshot
+
+  // Tier 3 only: Full raw data with all fields
+  raw_data?: RawContextData
+
+  // Conversation context
   conversation_history?: MessageSummary[]
+}
+
+export interface DataSummary {
+  active_task_count: number
+  completed_task_count: number
+  activity_log_count: number
+  focus_session_count: number
+}
+
+// Context info returned to the UI for visibility
+export interface ContextInfo {
+  tier: ContextTier
+  tier_description: string
+  loaded_at: string
+  data_summary: DataSummary
+  is_cached: boolean
+}
+
+export interface RawContextData {
+  activity_logs: ActivityLogRecord[]
+  focus_sessions: FocusSessionRecord[]
+}
+
+export interface ActivityLogRecord {
+  id: string
+  task_id: string | null
+  task_title: string | null
+  project_id: string | null
+  action: string
+  changes: Record<string, { old: unknown; new: unknown }> | null
+  created_at: string
+}
+
+export interface FocusSessionRecord {
+  id: string
+  task_id: string
+  task_title: string | null
+  started_at: string
+  ended_at: string | null
+  duration_minutes: number | null
+  notes: string | null
 }
 
 export interface UserSummary {
@@ -196,6 +260,7 @@ export interface SendMessageResult {
   conversation_id: string
   message: AIMessage
   proposed_actions?: AIProposedAction[]
+  context_info?: ContextInfo
 }
 
 export interface GenerateReportInput {

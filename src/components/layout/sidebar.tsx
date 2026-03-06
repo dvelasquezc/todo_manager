@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Inbox, Sun, Calendar, Archive, Settings, Plus, FolderKanban, Brain, BarChart3, Bot } from 'lucide-react'
+import { Inbox, Sun, Calendar, Archive, Settings, Plus, FolderKanban, Brain, BarChart3, Bot, ArrowRight, Clock, Ban, CloudSun, ChevronRight, ChevronDown } from 'lucide-react'
 import { BrainDumpModal } from '@/components/tasks/brain-dump-modal'
 import { useAssistant } from '@/components/ai-assistant'
 import { FocusTimerIndicator } from '@/components/tasks/focus-timer'
@@ -17,11 +17,22 @@ interface SidebarProps {
 export function Sidebar({ projects }: SidebarProps) {
   const pathname = usePathname()
   const [brainDumpOpen, setBrainDumpOpen] = useState(false)
+  const [moreExpanded, setMoreExpanded] = useState(false)
   const { toggle: toggleAssistant } = useAssistant()
 
-  const navItems = [
+  const primaryNavItems = [
     { href: '/inbox', label: 'Inbox', icon: Inbox },
     { href: '/today', label: 'Today', icon: Sun },
+  ]
+
+  const secondaryNavItems = [
+    { href: '/next', label: 'Next', icon: ArrowRight },
+    { href: '/waiting', label: 'Waiting', icon: Clock },
+    { href: '/blocked', label: 'Blocked', icon: Ban },
+    { href: '/someday', label: 'Someday', icon: CloudSun },
+  ]
+
+  const bottomNavItems = [
     { href: '/calendar', label: 'Calendar', icon: Calendar },
     { href: '/dashboard', label: 'Dashboard', icon: BarChart3 },
   ]
@@ -67,7 +78,61 @@ export function Sidebar({ projects }: SidebarProps) {
 
         {/* Main nav */}
         <nav className="flex-1 px-2 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
+          {/* Primary nav items - always visible */}
+          {primaryNavItems.map((item) => {
+            const isActive = pathname === item.href
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  'flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                  isActive
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                )}
+              >
+                <item.icon className="mr-3 h-5 w-5" />
+                {item.label}
+              </Link>
+            )
+          })}
+
+          {/* Collapsible "More" section */}
+          <button
+            onClick={() => setMoreExpanded(!moreExpanded)}
+            className="flex w-full items-center px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-md transition-colors"
+          >
+            {moreExpanded ? (
+              <ChevronDown className="mr-3 h-5 w-5" />
+            ) : (
+              <ChevronRight className="mr-3 h-5 w-5" />
+            )}
+            More
+          </button>
+
+          {/* Secondary nav items - collapsible */}
+          {moreExpanded && secondaryNavItems.map((item) => {
+            const isActive = pathname === item.href
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  'flex items-center px-3 py-2 pl-6 text-sm font-medium rounded-md transition-colors',
+                  isActive
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                )}
+              >
+                <item.icon className="mr-3 h-5 w-5" />
+                {item.label}
+              </Link>
+            )
+          })}
+
+          {/* Bottom nav items - always visible */}
+          {bottomNavItems.map((item) => {
             const isActive = pathname === item.href
             return (
               <Link

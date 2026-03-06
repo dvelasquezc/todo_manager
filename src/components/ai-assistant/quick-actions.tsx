@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { FileText, Calendar, TrendingUp, AlertTriangle, Target, Loader2 } from 'lucide-react'
+import { FileText, Calendar, TrendingUp, AlertTriangle, Target, Loader2, CheckCircle2, Clock, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { generateReport } from '@/actions/ai-assistant'
 import type { ReportType, AIReport } from '@/types/ai'
@@ -41,6 +41,24 @@ const reportTypes: {
     label: 'Estimate Calibration',
     description: 'Time estimation accuracy analysis',
     icon: Target,
+  },
+  {
+    type: 'today_success_rate',
+    label: '"Today" Success Rate',
+    description: 'Track follow-through on tasks marked for today',
+    icon: CheckCircle2,
+  },
+  {
+    type: 'productive_hours_map',
+    label: 'Productive Hours Map',
+    description: 'Peak performance times by day and hour',
+    icon: Clock,
+  },
+  {
+    type: 'procrastination_analysis',
+    label: 'Procrastination Analysis',
+    description: 'Identify which tasks linger and why',
+    icon: Zap,
   },
 ]
 

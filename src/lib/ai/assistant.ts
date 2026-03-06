@@ -172,6 +172,9 @@ function buildReportUserMessage(reportType: ReportType, parameters: Record<strin
     long_term_trends: `Please generate a Long-term Trends analysis for the past ${parameters.weeks || 8} weeks.`,
     friction_analysis: 'Please generate a Friction Analysis report identifying issues in my workflow.',
     estimate_calibration: 'Please generate an Estimate Calibration report analyzing my time estimation accuracy.',
+    today_success_rate: 'Please generate a "Today" Success Rate report analyzing how well I follow through on tasks I mark as "today".',
+    productive_hours_map: 'Please generate a Productive Hours Map showing when I am most productive throughout the week.',
+    procrastination_analysis: 'Please generate a Procrastination Analysis report identifying which tasks linger and why.',
   }
 
   return messages[reportType]
